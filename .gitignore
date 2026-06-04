@@ -1,0 +1,15 @@
+# Copyrighted source material (IU-Skript) und daraus abgeleitete Rohextrakte
+Skript.pdf
+skript_layout.txt
+skript_plain.txt
+pages/
+build/spec_lektion*.md
+
+# Tooling / Zwischenstände
+node_modules/
+shots/
+*.output
+
+# OS
+Thumbs.db
+.DS_Store

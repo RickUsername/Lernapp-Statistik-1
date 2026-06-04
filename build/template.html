@@ -1,0 +1,1120 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0">
+<meta name="description" content="Interaktive Lernapp für das IU-Statistikmodul BSTA01-02 – alle 8 Lektionen mit Erklärungen, Formeln, Beispielen und interaktiven Simulationen.">
+<title>Statistik BSTA01-02 · Interaktive Lernapp</title>
+
+<!-- ============================ MathJax ============================ -->
+<script>
+window.MathJax = {
+  tex: {
+    inlineMath: [['\\(', '\\)'], ['$', '$']],
+    displayMath: [['\\[', '\\]'], ['$$', '$$']],
+    processEscapes: true,
+    tags: 'none'
+  },
+  svg: { fontCache: 'global', scale: 1.0 },
+  options: { skipHtmlTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code'] },
+  startup: {
+    typeset: false,
+    ready: () => { MathJax.startup.defaultReady(); window.__mathjaxReady = true; }
+  }
+};
+</script>
+<script async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-svg.js"></script>
+
+<!-- ============================ Chart.js ============================ -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
+
+<style>
+/* ============================ THEME ============================ */
+:root{
+  --bg:#0d1017; --bg-1:#121724; --bg-2:#172033; --bg-3:#1f2a40;
+  --panel:#131a28; --panel-2:#182133;
+  --border:#27324a; --border-2:#33405e;
+  --text:#e8ecf4; --text-soft:#c3ccdc; --muted:#8d9bb5; --muted-2:#6b7997;
+  --accent:#e7b54c;        /* Gold */
+  --accent-soft:#3a3115;
+  --teal:#54c7c0; --teal-soft:#123230;
+  --violet:#9d8cff; --violet-soft:#221d40;
+  --blue:#5fa8ff; --blue-soft:#10243d;
+  --good:#5ed39a; --good-soft:#0f2f22;
+  --bad:#f0726f; --bad-soft:#341417;
+  --warn:#f2b65a;
+  --shadow:0 10px 30px rgba(0,0,0,.45);
+  --radius:14px; --radius-s:9px;
+  --sans:"Segoe UI",system-ui,-apple-system,Roboto,Helvetica,Arial,sans-serif;
+  --serif:"Iowan Old Style","Palatino Linotype",Palatino,Georgia,"Times New Roman",serif;
+  --mono:"SFMono-Regular",Consolas,"Liberation Mono",Menlo,monospace;
+  --sidebar-w:312px;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{
+  margin:0; background:
+     radial-gradient(1200px 600px at 80% -10%, #16203a 0%, transparent 55%),
+     radial-gradient(900px 500px at -10% 10%, #15242a 0%, transparent 50%),
+     var(--bg);
+  color:var(--text); font-family:var(--sans); line-height:1.62;
+  font-size:16.5px; -webkit-font-smoothing:antialiased; text-rendering:optimizeLegibility;
+}
+a{color:var(--teal); text-decoration:none}
+a:hover{text-decoration:underline}
+h1,h2,h3,h4{font-family:var(--serif); line-height:1.2; color:#fff; font-weight:600}
+::selection{background:var(--accent); color:#1a1405}
+
+/* scrollbars */
+*{scrollbar-width:thin; scrollbar-color:var(--border-2) transparent}
+*::-webkit-scrollbar{width:10px;height:10px}
+*::-webkit-scrollbar-thumb{background:var(--border-2); border-radius:8px}
+*::-webkit-scrollbar-thumb:hover{background:#42527a}
+
+/* ============================ TOP BAR ============================ */
+#topbar{
+  position:fixed; top:0; left:0; right:0; height:54px; z-index:60;
+  display:flex; align-items:center; gap:12px; padding:0 16px;
+  background:rgba(10,13,20,.82); backdrop-filter:blur(12px);
+  border-bottom:1px solid var(--border);
+}
+#topbar .brand{font-family:var(--serif); font-weight:600; letter-spacing:.3px; font-size:1.05rem; white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
+#topbar .brand b{color:var(--accent)}
+#topbar .spacer{flex:1}
+#topProgWrap{display:flex; align-items:center; gap:9px; min-width:120px}
+#topProgBar{flex:1; height:7px; min-width:70px; background:var(--bg-2); border-radius:6px; overflow:hidden; border:1px solid var(--border)}
+#topProgFill{height:100%; width:0%; background:linear-gradient(90deg,var(--teal),var(--accent)); transition:width .5s cubic-bezier(.4,0,.2,1)}
+#topProgPct{font-size:.8rem; color:var(--muted); min-width:34px; text-align:right; font-variant-numeric:tabular-nums}
+#menuBtn{display:none; background:var(--bg-2); border:1px solid var(--border); color:var(--text); width:38px;height:38px;border-radius:9px; font-size:1.2rem; cursor:pointer; align-items:center; justify-content:center}
+#menuBtn:active{transform:scale(.94)}
+
+/* ============================ SIDEBAR ============================ */
+#sidebar{
+  position:fixed; top:54px; bottom:0; left:0; width:var(--sidebar-w); z-index:50;
+  background:linear-gradient(180deg,#0f1421, #0c1019); border-right:1px solid var(--border);
+  overflow-y:auto; padding:14px 12px 60px; transition:transform .28s ease;
+}
+.nav-top{display:flex; gap:8px; margin-bottom:12px}
+.nav-top a{
+  flex:1; text-align:center; padding:9px 6px; border-radius:10px; font-size:.86rem; font-weight:600;
+  background:var(--bg-2); border:1px solid var(--border); color:var(--text-soft);
+}
+.nav-top a.active{background:var(--accent); color:#1a1405; border-color:var(--accent)}
+.nav-top a:hover{text-decoration:none; border-color:var(--border-2)}
+
+.lesson-group{margin-bottom:7px; border:1px solid var(--border); border-radius:12px; overflow:hidden; background:var(--panel)}
+.lesson-head{
+  display:flex; align-items:center; gap:10px; padding:11px 12px; cursor:pointer; user-select:none;
+  transition:background .15s;
+}
+.lesson-head:hover{background:var(--panel-2)}
+.lesson-head .lnum{
+  flex:none; width:30px; height:30px; border-radius:8px; display:grid; place-items:center;
+  font-weight:700; font-size:.92rem; background:var(--bg-3); color:var(--accent); border:1px solid var(--border-2);
+}
+.lesson-head .ltit{flex:1; font-size:.92rem; font-weight:600; line-height:1.25}
+.lesson-head .lchev{flex:none; color:var(--muted); transition:transform .2s; font-size:.8rem}
+.lesson-group.open .lchev{transform:rotate(90deg)}
+.ring{flex:none; width:30px;height:30px}
+.ring svg{transform:rotate(-90deg)}
+.ring .bg{stroke:var(--bg-3)} .ring .fg{stroke:var(--teal); transition:stroke-dashoffset .5s}
+.ring .pct{font-size:.62rem; fill:var(--muted); transform:rotate(90deg); text-anchor:middle; font-family:var(--sans)}
+
+.section-list{max-height:0; overflow:hidden; transition:max-height .3s ease}
+.lesson-group.open .section-list{max-height:1200px}
+.section-item{
+  display:flex; align-items:center; gap:9px; padding:8px 12px 8px 16px; cursor:pointer; font-size:.86rem;
+  color:var(--text-soft); border-top:1px solid var(--border); transition:background .12s,color .12s;
+}
+.section-item:hover{background:var(--panel-2); color:#fff}
+.section-item.active{background:var(--accent-soft); color:#fff; box-shadow:inset 3px 0 0 var(--accent)}
+.section-item .snum{color:var(--muted); font-variant-numeric:tabular-nums; flex:none}
+.section-item .stit{flex:1}
+.section-item .scheck{flex:none; width:18px;height:18px; border-radius:50%; border:1.5px solid var(--border-2); display:grid; place-items:center; font-size:.7rem}
+.section-item.done .scheck{background:var(--good); border-color:var(--good); color:#05231a}
+.section-item.quizrow{font-style:italic; color:var(--muted)}
+.section-item.quizrow .snum{color:var(--violet)}
+
+.side-reset{margin-top:14px; text-align:center}
+.side-reset button{background:none;border:1px solid var(--border);color:var(--muted);padding:7px 12px;border-radius:8px;cursor:pointer;font-size:.8rem}
+.side-reset button:hover{border-color:var(--bad); color:var(--bad)}
+
+#scrim{position:fixed; inset:54px 0 0 0; background:rgba(0,0,0,.5); z-index:40; opacity:0; pointer-events:none; transition:opacity .25s}
+#scrim.show{opacity:1; pointer-events:auto}
+
+/* ============================ MAIN ============================ */
+#main{margin-left:var(--sidebar-w); margin-top:54px; padding:34px clamp(16px,4vw,60px) 120px; max-width:980px}
+.view{animation:fadeUp .4s cubic-bezier(.2,.7,.3,1)}
+@keyframes fadeUp{from{opacity:0; transform:translateY(14px)} to{opacity:1; transform:none}}
+
+.crumb{font-size:.82rem; color:var(--muted); margin-bottom:6px; letter-spacing:.4px; text-transform:uppercase}
+.view h1.title{font-size:clamp(1.6rem,4.5vw,2.35rem); margin:.1em 0 .15em}
+.view .subtitle{color:var(--muted); font-size:1.02rem; margin-bottom:8px}
+.sec-divider{height:1px;background:linear-gradient(90deg,var(--border),transparent); margin:18px 0 26px}
+
+/* content blocks */
+.blk{margin:0 0 17px}
+.blk.h{font-family:var(--serif); font-size:1.32rem; margin:34px 0 12px; color:#fff; padding-bottom:7px; border-bottom:1px solid var(--border)}
+.blk.h .hicon{color:var(--accent); margin-right:8px}
+.blk.sub{font-family:var(--serif); font-size:1.08rem; color:var(--teal); margin:22px 0 8px}
+p.blk{color:var(--text-soft)}
+.blk ul,.blk ol{color:var(--text-soft); padding-left:1.3em; margin:0 0 17px}
+.blk li{margin:5px 0}
+.blk.lead{font-size:1.1rem; color:var(--text)}
+mark.k{background:var(--accent-soft); color:var(--accent); padding:.02em .28em; border-radius:4px; font-weight:600}
+mark.t{background:var(--teal-soft); color:var(--teal); padding:.02em .28em; border-radius:4px}
+
+.box{border-radius:var(--radius); padding:16px 18px; margin:0 0 20px; position:relative; border:1px solid var(--border)}
+.box .box-tag{display:flex; width:fit-content; align-items:center; gap:7px; font-size:.72rem; font-weight:700; letter-spacing:.7px; text-transform:uppercase; margin-bottom:9px}
+.box .box-title{font-family:var(--serif); font-size:1.06rem; margin:0 0 7px; color:#fff}
+.box p:last-child{margin-bottom:0}
+.box-def{background:linear-gradient(180deg,var(--accent-soft),transparent 70%),var(--panel); border-left:4px solid var(--accent)}
+.box-def .box-tag{color:var(--accent)}
+.box-def .term{font-family:var(--serif); font-size:1.12rem; color:var(--accent); font-weight:600}
+.box-ex{background:linear-gradient(180deg,var(--teal-soft),transparent 70%),var(--panel); border-left:4px solid var(--teal)}
+.box-ex .box-tag{color:var(--teal)}
+.box-why{background:linear-gradient(180deg,var(--blue-soft),transparent 70%),var(--panel); border-left:4px solid var(--blue)}
+.box-why .box-tag{color:var(--blue)}
+.box-aha{background:linear-gradient(135deg,#2a2410,#2a1d2e); border:1px solid #4a3d1e}
+.box-aha .box-tag{color:var(--accent)}
+.box-quote{background:var(--panel); border:1px solid var(--border); border-left:4px solid var(--violet); font-family:var(--serif); font-style:italic; font-size:1.05rem; color:var(--text)}
+.box-quote .qsource{display:block; font-style:normal; font-family:var(--sans); font-size:.8rem; color:var(--muted); margin-top:9px}
+.box-quote::before{content:"“"; font-family:var(--serif); font-size:2.4rem; color:var(--violet); line-height:0; position:absolute; top:22px; left:10px; opacity:.4}
+.box-quote{padding-left:30px}
+.box-warn{background:linear-gradient(180deg,var(--bad-soft),transparent 70%),var(--panel); border-left:4px solid var(--bad)}
+.box-warn .box-tag{color:var(--bad)}
+
+/* formula */
+.formula{background:#0b0f18; border:1px solid var(--border); border-radius:var(--radius-s); padding:14px 16px; margin:0 0 20px; overflow-x:auto; text-align:center; position:relative}
+.formula .fcap{display:block; text-align:left; font-size:.8rem; color:var(--muted); margin-top:9px; border-top:1px dashed var(--border); padding-top:8px}
+.formula mjx-container{margin:0 !important}
+.formula.named{border-left:4px solid var(--accent)}
+
+/* tables */
+.tbl-wrap{overflow-x:auto; margin:0 0 22px; border:1px solid var(--border); border-radius:var(--radius-s)}
+table.data{border-collapse:collapse; width:100%; font-size:.9rem; min-width:340px}
+table.data caption{caption-side:bottom; text-align:left; padding:8px 12px; font-size:.78rem; color:var(--muted)}
+table.data th,table.data td{padding:8px 12px; text-align:right; border-bottom:1px solid var(--border); white-space:nowrap}
+table.data th{background:var(--bg-2); color:var(--text); font-weight:600; position:sticky; top:0}
+table.data td:first-child,table.data th:first-child{text-align:left}
+table.data tr:hover td{background:rgba(84,199,192,.05)}
+table.data tr.hl td{background:var(--accent-soft)}
+table.data.compact td,table.data.compact th{padding:5px 9px; font-size:.83rem}
+
+/* ============================ WIDGET CARD ============================ */
+.widget{background:var(--panel); border:1px solid var(--border-2); border-radius:var(--radius); margin:6px 0 26px; box-shadow:var(--shadow); overflow:hidden}
+.widget-bar{display:flex; align-items:center; gap:10px; padding:11px 16px; background:linear-gradient(90deg,var(--bg-3),var(--panel)); border-bottom:1px solid var(--border)}
+.widget-bar .wico{font-size:1.05rem}
+.widget-bar .wtitle{font-family:var(--serif); font-weight:600; font-size:1rem; color:#fff; flex:1}
+.widget-bar .wtag{font-size:.66rem; text-transform:uppercase; letter-spacing:.8px; color:var(--teal); background:var(--teal-soft); padding:3px 8px; border-radius:20px; font-weight:700}
+.widget-body{padding:16px}
+.widget-hint{font-size:.85rem; color:var(--muted); margin:0 0 12px}
+
+/* controls */
+.ctrl-row{display:flex; flex-wrap:wrap; gap:14px 20px; align-items:flex-end; margin-bottom:14px}
+.ctrl{display:flex; flex-direction:column; gap:5px; min-width:120px}
+.ctrl label{font-size:.78rem; color:var(--muted); font-weight:600}
+.ctrl .val{color:var(--accent); font-variant-numeric:tabular-nums; font-weight:700}
+input[type=range]{-webkit-appearance:none; appearance:none; height:6px; background:var(--bg-3); border-radius:5px; outline:none; width:100%}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none; width:18px;height:18px;border-radius:50%; background:var(--accent); cursor:pointer; border:2px solid #1a1405; box-shadow:0 1px 4px rgba(0,0,0,.5)}
+input[type=range]::-moz-range-thumb{width:18px;height:18px;border-radius:50%; background:var(--accent); cursor:pointer; border:2px solid #1a1405}
+input[type=text],input[type=number],textarea,select{
+  background:var(--bg-1); border:1px solid var(--border-2); color:var(--text); border-radius:8px; padding:8px 10px; font-family:var(--mono); font-size:.92rem; width:100%;
+}
+input:focus,textarea:focus,select:focus{outline:none; border-color:var(--teal); box-shadow:0 0 0 3px var(--teal-soft)}
+textarea{font-family:var(--mono); resize:vertical; min-height:54px}
+.btn{display:inline-flex; align-items:center; gap:7px; background:var(--bg-3); color:var(--text); border:1px solid var(--border-2); padding:8px 15px; border-radius:9px; cursor:pointer; font-size:.9rem; font-weight:600; transition:.15s}
+.btn:hover{border-color:var(--teal); background:var(--panel-2)}
+.btn:active{transform:scale(.97)}
+.btn.primary{background:var(--accent); color:#1a1405; border-color:var(--accent)}
+.btn.primary:hover{filter:brightness(1.08)}
+.btn.ghost{background:none}
+.btn-row{display:flex; gap:9px; flex-wrap:wrap; margin:6px 0}
+.chips{display:flex; gap:8px; flex-wrap:wrap}
+.chip{padding:6px 12px; border-radius:20px; background:var(--bg-3); border:1px solid var(--border-2); cursor:pointer; font-size:.83rem; transition:.12s}
+.chip:hover{border-color:var(--teal)}
+.chip.active{background:var(--teal); color:#04201e; border-color:var(--teal); font-weight:600}
+
+.canvas-wrap{position:relative; width:100%; background:#0a0e16; border:1px solid var(--border); border-radius:10px; overflow:hidden}
+.canvas-wrap canvas{display:block; width:100%; touch-action:none}
+.readout{display:flex; flex-wrap:wrap; gap:10px; margin-top:12px}
+.stat{flex:1; min-width:92px; background:var(--bg-2); border:1px solid var(--border); border-radius:10px; padding:9px 12px; text-align:center}
+.stat .v{font-size:1.18rem; font-weight:700; color:var(--accent); font-variant-numeric:tabular-nums; font-family:var(--mono)}
+.stat .l{font-size:.72rem; color:var(--muted); margin-top:2px}
+.stat.teal .v{color:var(--teal)} .stat.violet .v{color:var(--violet)} .stat.good .v{color:var(--good)} .stat.blue .v{color:var(--blue)}
+.steps{counter-reset:st; margin:8px 0}
+.steps .step{position:relative; padding:8px 0 8px 38px; border-left:2px solid var(--border); margin-left:13px}
+.steps .step::before{counter-increment:st; content:counter(st); position:absolute; left:-14px; top:7px; width:26px;height:26px; border-radius:50%; background:var(--bg-3); border:1px solid var(--border-2); color:var(--accent); display:grid; place-items:center; font-size:.8rem; font-weight:700; font-family:var(--mono)}
+.steps .step .sk{color:var(--muted); font-size:.82rem; display:block}
+
+/* ============================ QUIZ ============================ */
+.quiz-card{background:var(--panel); border:1px solid var(--border-2); border-radius:var(--radius); padding:6px 0; margin:8px 0 26px; box-shadow:var(--shadow)}
+.quiz-head{padding:16px 20px; border-bottom:1px solid var(--border); display:flex; align-items:center; gap:12px}
+.quiz-head .qh-ico{font-size:1.5rem}
+.quiz-head h3{margin:0; font-size:1.15rem}
+.quiz-head .qmeta{margin-left:auto; font-size:.84rem; color:var(--muted)}
+.q-block{padding:18px 20px; border-bottom:1px solid var(--border)}
+.q-block:last-child{border-bottom:none}
+.q-num{font-size:.76rem; color:var(--violet); font-weight:700; letter-spacing:.5px}
+.q-text{font-size:1.04rem; margin:6px 0 13px; color:#fff}
+.q-opts{display:flex; flex-direction:column; gap:9px}
+.opt{display:flex; gap:11px; align-items:flex-start; padding:11px 14px; border:1px solid var(--border-2); border-radius:10px; cursor:pointer; transition:.13s; background:var(--bg-1)}
+.opt:hover{border-color:var(--teal); background:var(--panel-2)}
+.opt .mark{flex:none; width:22px;height:22px;border-radius:50%; border:1.5px solid var(--border-2); display:grid; place-items:center; font-size:.78rem; font-weight:700}
+.opt.correct{border-color:var(--good); background:var(--good-soft)} .opt.correct .mark{background:var(--good); border-color:var(--good); color:#04231a}
+.opt.wrong{border-color:var(--bad); background:var(--bad-soft)} .opt.wrong .mark{background:var(--bad); border-color:var(--bad); color:#2a0c0c}
+.opt.disabled{cursor:default; opacity:.92}
+.q-explain{margin-top:12px; padding:11px 14px; background:var(--bg-2); border-radius:9px; border-left:3px solid var(--teal); font-size:.92rem; color:var(--text-soft); display:none}
+.q-explain.show{display:block; animation:fadeUp .3s}
+.quiz-foot{padding:16px 20px; display:flex; align-items:center; gap:14px; flex-wrap:wrap}
+.quiz-score{font-size:1.05rem; font-weight:600}
+.scorebar{flex:1; min-width:120px; height:10px; background:var(--bg-2); border-radius:6px; overflow:hidden; border:1px solid var(--border)}
+.scorebar .fill{height:100%; width:0; background:linear-gradient(90deg,var(--bad),var(--warn),var(--good)); transition:width .6s}
+
+/* ============================ DASHBOARD ============================ */
+.hero{background:linear-gradient(135deg,#15203a,#15282a); border:1px solid var(--border-2); border-radius:var(--radius); padding:26px 26px; margin-bottom:24px; position:relative; overflow:hidden}
+.hero::after{content:"∑"; position:absolute; right:-10px; bottom:-40px; font-size:13rem; font-family:var(--serif); color:rgba(231,181,76,.06); pointer-events:none}
+.hero h1{font-size:clamp(1.7rem,5vw,2.5rem); margin:0 0 8px}
+.hero p{color:var(--text-soft); max-width:60ch; margin:.3em 0}
+.hero .pill{display:inline-block; font-size:.78rem; color:var(--accent); background:var(--accent-soft); padding:4px 11px; border-radius:20px; margin-bottom:10px; letter-spacing:.4px}
+.dash-grid{display:grid; grid-template-columns:repeat(auto-fill,minmax(225px,1fr)); gap:14px; margin:18px 0}
+.dash-card{background:var(--panel); border:1px solid var(--border); border-radius:12px; padding:16px; cursor:pointer; transition:.16s; position:relative; overflow:hidden}
+.dash-card:hover{border-color:var(--teal); transform:translateY(-3px); box-shadow:var(--shadow)}
+.dash-card .dc-num{font-family:var(--serif); font-size:.84rem; color:var(--accent); font-weight:700}
+.dash-card .dc-tit{font-family:var(--serif); font-size:1.08rem; color:#fff; margin:3px 0 10px; line-height:1.25}
+.dash-card .dc-bar{height:6px; background:var(--bg-2); border-radius:5px; overflow:hidden}
+.dash-card .dc-bar .f{height:100%; background:linear-gradient(90deg,var(--teal),var(--accent)); width:0; transition:width .6s}
+.dash-card .dc-meta{font-size:.76rem; color:var(--muted); margin-top:7px; display:flex; justify-content:space-between}
+.overall{display:flex; align-items:center; gap:18px; flex-wrap:wrap; margin-top:14px}
+.overall .big{font-size:2.4rem; font-family:var(--serif); color:var(--accent); font-weight:700}
+
+/* section nav buttons */
+.sec-nav{display:flex; justify-content:space-between; gap:12px; margin-top:36px; flex-wrap:wrap}
+.sec-nav .btn{flex:1; min-width:140px; justify-content:center}
+.done-toggle{display:flex; align-items:center; gap:12px; margin-top:28px; padding:16px; background:var(--panel); border:1px dashed var(--border-2); border-radius:12px}
+.done-toggle.is-done{border-color:var(--good); border-style:solid; background:var(--good-soft)}
+
+/* footnote / source */
+.srcnote{font-size:.78rem; color:var(--muted-2); font-style:italic}
+
+/* loading */
+#loading{position:fixed; inset:0; background:var(--bg); display:grid; place-items:center; z-index:200; transition:opacity .4s}
+#loading.hide{opacity:0; pointer-events:none}
+.spin{width:46px;height:46px;border:4px solid var(--border); border-top-color:var(--accent); border-radius:50%; animation:sp 1s linear infinite}
+@keyframes sp{to{transform:rotate(360deg)}}
+
+/* responsive */
+@media (max-width:920px){
+  :root{--sidebar-w:288px}
+  #sidebar{transform:translateX(-100%); box-shadow:var(--shadow)}
+  #sidebar.open{transform:none}
+  #main{margin-left:0; padding-top:24px}
+  #menuBtn{display:flex}
+}
+@media (max-width:560px){
+  body{font-size:16px}
+  #main{padding:18px 15px 110px}
+  .hero{padding:20px 18px}
+  .widget-body{padding:13px}
+  .box{padding:14px}
+  .ctrl{min-width:100%}
+  .stat{min-width:calc(50% - 5px)}
+}
+.nowrap{white-space:nowrap}
+.center{text-align:center}
+.muted{color:var(--muted)}
+.small{font-size:.85rem}
+.hidden{display:none !important}
+</style>
+</head>
+<body>
+
+<div id="loading"><div style="text-align:center"><div class="spin"></div><p style="color:var(--muted);margin-top:16px;font-family:var(--serif)">Lade Statistik …</p></div></div>
+
+<header id="topbar">
+  <button id="menuBtn" aria-label="Menü">☰</button>
+  <span class="brand">Statistik · <b>BSTA01-02</b></span>
+  <span class="spacer"></span>
+  <div id="topProgWrap" title="Gesamtfortschritt">
+    <div id="topProgBar"><div id="topProgFill"></div></div>
+    <span id="topProgPct">0%</span>
+  </div>
+</header>
+
+<nav id="sidebar"></nav>
+<div id="scrim"></div>
+<main id="main"></main>
+
+<script>
+/* ===================================================================
+   BSTA01-02 Lernapp – Shell / Framework
+   Aufbau:  Utils → Stats → Plot → Charts → State/Progress →
+            Renderer (Blöcke) → Quiz → Sidebar → Router → Lesson-Registry
+   =================================================================== */
+"use strict";
+
+/* ============================ UTILS ============================ */
+function el(tag, attrs, ...kids){
+  const n = document.createElement(tag);
+  if(attrs) for(const k in attrs){
+    const v = attrs[k];
+    if(k==="class") n.className = v;
+    else if(k==="html") n.innerHTML = v;
+    else if(k==="text") n.textContent = v;
+    else if(k==="style" && typeof v==="object") Object.assign(n.style, v);
+    else if(k.startsWith("on") && typeof v==="function") n.addEventListener(k.slice(2), v);
+    else if(v!==null && v!==undefined && v!==false) n.setAttribute(k, v);
+  }
+  for(let c of kids.flat()){
+    if(c===null||c===undefined||c===false) continue;
+    n.appendChild(typeof c==="string"||typeof c==="number" ? document.createTextNode(c) : c);
+  }
+  return n;
+}
+const $ = (s,r=document)=>r.querySelector(s);
+const $$ = (s,r=document)=>[...r.querySelectorAll(s)];
+
+/* number formatting (German: comma decimal) */
+const fmt = {
+  n(x, d=2){
+    if(x===null||x===undefined||Number.isNaN(x)) return "–";
+    if(!isFinite(x)) return x>0?"∞":"−∞";
+    let s = Number(x).toLocaleString("de-DE",{minimumFractionDigits:d, maximumFractionDigits:d});
+    return s;
+  },
+  // auto decimals
+  a(x){ if(x===null||x===undefined||Number.isNaN(x))return"–"; const ax=Math.abs(x);
+        let d = ax>=100?1: ax>=1?2: ax>=0.1?3:4; return fmt.n(x,d); },
+  int(x){ return Number(x).toLocaleString("de-DE"); },
+  pct(x,d=1){ return fmt.n(x*100,d)+" %"; }
+};
+function clamp(x,a,b){return Math.max(a,Math.min(b,x));}
+function range(a,b,step=1){const r=[];for(let i=a;i<=b+1e-9;i+=step)r.push(+i.toFixed(10));return r;}
+function parseNums(str){
+  return (str||"").split(/[\s,;]+/).map(s=>s.replace(",", ".")).map(Number).filter(v=>!Number.isNaN(v) && isFinite(v));
+}
+
+/* ============================ STATS LIBRARY ============================ */
+const Stats = (function(){
+  const sum = a => a.reduce((s,x)=>s+x,0);
+  const mean = a => a.length? sum(a)/a.length : NaN;
+  function sortAsc(a){return [...a].sort((x,y)=>x-y);}
+
+  // German/Bamberg empirical quantile (used in IU script):
+  // pos = n*p ; if integer -> mean of x_(pos) and x_(pos+1) ; else x_(ceil(pos))
+  function quantile(a,p){
+    if(!a.length) return NaN;
+    const s = sortAsc(a), n = s.length, pos = n*p;
+    if(Math.abs(pos-Math.round(pos))<1e-9){
+      const k = Math.round(pos);                // 1-based
+      if(k>=n) return s[n-1];
+      return (s[k-1]+s[k])/2;
+    }
+    return s[Math.ceil(pos)-1];
+  }
+  const median = a => quantile(a,0.5);
+  function mode(a){
+    const m=new Map(); a.forEach(x=>m.set(x,(m.get(x)||0)+1));
+    let best=[],bc=0; m.forEach((c,v)=>{if(c>bc){bc=c;best=[v];}else if(c===bc)best.push(v);});
+    return {values:best.sort((x,y)=>x-y), count:bc};
+  }
+  // sample variance (denominator n-1) – the script's "Stichprobenvarianz"
+  function variance(a){const n=a.length; if(n<2)return NaN; const m=mean(a); return sum(a.map(x=>(x-m)**2))/(n-1);}
+  function variancePop(a){const n=a.length; if(!n)return NaN; const m=mean(a); return sum(a.map(x=>(x-m)**2))/n;}
+  const sd = a => Math.sqrt(variance(a));
+  const sdPop = a => Math.sqrt(variancePop(a));
+  const cv = a => sd(a)/mean(a);                 // Variationskoeffizient
+  const range_ = a => Math.max(...a)-Math.min(...a);  // Spannweite
+  const iqr = a => quantile(a,0.75)-quantile(a,0.25);
+
+  function ranks(a){ // average ranks for ties
+    const idx = a.map((v,i)=>[v,i]).sort((p,q)=>p[0]-q[0]);
+    const r = new Array(a.length);
+    let i=0;
+    while(i<idx.length){ let j=i; while(j+1<idx.length && idx[j+1][0]===idx[i][0]) j++;
+      const avg=(i+j)/2+1; for(let k=i;k<=j;k++) r[idx[k][1]]=avg; i=j+1; }
+    return r;
+  }
+  function covariance(x,y){const n=x.length,mx=mean(x),my=mean(y);let s=0;for(let i=0;i<n;i++)s+=(x[i]-mx)*(y[i]-my);return s/(n-1);}
+  function pearson(x,y){
+    const n=x.length,mx=mean(x),my=mean(y);
+    let sxy=0,sxx=0,syy=0;
+    for(let i=0;i<n;i++){const dx=x[i]-mx,dy=y[i]-my;sxy+=dx*dy;sxx+=dx*dx;syy+=dy*dy;}
+    return sxy/Math.sqrt(sxx*syy);
+  }
+  function spearman(x,y){return pearson(ranks(x),ranks(y));}
+  function spearmanSimple(x,y){ // 1 - 6Σd²/(n(n²-1)) (no ties)
+    const rx=ranks(x),ry=ranks(y),n=x.length;
+    let d2=0; for(let i=0;i<n;i++) d2+=(rx[i]-ry[i])**2;
+    return 1-(6*d2)/(n*(n*n-1));
+  }
+  // simple linear regression y = a + b x  (least squares)
+  function regression(x,y){
+    const n=x.length,mx=mean(x),my=mean(y);
+    let sxy=0,sxx=0;
+    for(let i=0;i<n;i++){sxy+=(x[i]-mx)*(y[i]-my);sxx+=(x[i]-mx)**2;}
+    const b=sxy/sxx, a=my-b*mx, r=pearson(x,y);
+    return {a,b,r,r2:r*r};
+  }
+  // contingency table chi^2, C, C* (corrected)
+  function chiSquare(obs){
+    const R=obs.length,C=obs[0].length;
+    const rt=obs.map(r=>r.reduce((s,v)=>s+v,0));
+    const ct=obs[0].map((_,j)=>obs.reduce((s,r)=>s+r[j],0));
+    const N=rt.reduce((s,v)=>s+v,0);
+    let chi=0; const exp=[];
+    for(let i=0;i<R;i++){exp.push([]);for(let j=0;j<C;j++){const e=rt[i]*ct[j]/N;exp[i].push(e); if(e>0)chi+=(obs[i][j]-e)**2/e;}}
+    const k=Math.min(R,C);
+    const C_=Math.sqrt(chi/(chi+N));
+    const Cmax=Math.sqrt((k-1)/k);
+    const Ccorr=C_/Cmax;
+    return {chi2:chi, N, C:C_, Cmax, Ccorr, exp, rowSums:rt, colSums:ct, df:(R-1)*(C-1)};
+  }
+
+  /* ---- special functions ---- */
+  function erf(x){ // Abramowitz & Stegun 7.1.26
+    const s=x<0?-1:1; x=Math.abs(x);
+    const t=1/(1+0.3275911*x);
+    const y=1-(((((1.061405429*t-1.453152027)*t)+1.421413741)*t-0.284496736)*t+0.254829592)*t*Math.exp(-x*x);
+    return s*y;
+  }
+  function gammaln(x){
+    const g=[76.18009172947146,-86.50532032941677,24.01409824083091,-1.231739572450155,0.1208650973866179e-2,-0.5395239384953e-5];
+    let xx=x,y=x,tmp=x+5.5; tmp-=(x+0.5)*Math.log(tmp);
+    let ser=1.000000000190015; for(let j=0;j<6;j++){y+=1;ser+=g[j]/y;}
+    return -tmp+Math.log(2.5066282746310005*ser/xx);
+  }
+  function factorial(n){ if(n<0)return NaN; if(n<=170){let f=1;for(let i=2;i<=n;i++)f*=i;return f;} return Infinity; }
+  function choose(n,k){ if(k<0||k>n)return 0; return Math.round(Math.exp(gammaln(n+1)-gammaln(k+1)-gammaln(n-k+1))); }
+
+  // lower regularized incomplete gamma P(a,x) (Numerical Recipes)
+  function gammp(a,x){
+    if(x<0||a<=0)return NaN; if(x===0)return 0;
+    if(x<a+1){ // series
+      let ap=a,del=1/a,sum=1/a;
+      for(let n=0;n<200;n++){ap++;del*=x/ap;sum+=del;if(Math.abs(del)<Math.abs(sum)*1e-12)break;}
+      return sum*Math.exp(-x+a*Math.log(x)-gammaln(a));
+    }else{ // continued fraction
+      let b=x+1-a,c=1e30,d=1/b,h=d;
+      for(let i=1;i<=200;i++){const an=-i*(i-a);b+=2;d=an*d+b;if(Math.abs(d)<1e-30)d=1e-30;c=b+an/c;if(Math.abs(c)<1e-30)c=1e-30;d=1/d;const del=d*c;h*=del;if(Math.abs(del-1)<1e-12)break;}
+      return 1-Math.exp(-x+a*Math.log(x)-gammaln(a))*h;
+    }
+  }
+  const chiSquareCdf=(x,k)=>gammp(k/2,x/2);
+
+  // regularized incomplete beta I_x(a,b)
+  function betai(a,b,x){
+    if(x<=0)return 0; if(x>=1)return 1;
+    const bt=Math.exp(gammaln(a+b)-gammaln(a)-gammaln(b)+a*Math.log(x)+b*Math.log(1-x));
+    function bcf(a,b,x){
+      const MAXIT=200,EPS=1e-12,FPMIN=1e-30;
+      let qab=a+b,qap=a+1,qam=a-1,c=1,d=1-qab*x/qap;
+      if(Math.abs(d)<FPMIN)d=FPMIN; d=1/d; let h=d;
+      for(let m=1;m<=MAXIT;m++){
+        const m2=2*m;
+        let aa=m*(b-m)*x/((qam+m2)*(a+m2)); d=1+aa*d; if(Math.abs(d)<FPMIN)d=FPMIN; c=1+aa/c; if(Math.abs(c)<FPMIN)c=FPMIN; d=1/d; h*=d*c;
+        aa=-(a+m)*(qab+m)*x/((a+m2)*(qap+m2)); d=1+aa*d; if(Math.abs(d)<FPMIN)d=FPMIN; c=1+aa/c; if(Math.abs(c)<FPMIN)c=FPMIN; d=1/d; const del=d*c; h*=del;
+        if(Math.abs(del-1)<EPS)break;
+      } return h;
+    }
+    if(x<(a+1)/(a+b+2)) return bt*bcf(a,b,x)/a;
+    return 1-bt*bcf(b,a,1-x)/b;
+  }
+
+  /* ---- distributions ---- */
+  const normalPdf=(x,mu=0,s=1)=>Math.exp(-((x-mu)**2)/(2*s*s))/(s*Math.sqrt(2*Math.PI));
+  const normalCdf=(x,mu=0,s=1)=>0.5*(1+erf((x-mu)/(s*Math.SQRT2)));
+  // inverse standard normal (Acklam)
+  function normalInv(p){
+    if(p<=0)return -Infinity; if(p>=1)return Infinity;
+    const a=[-3.969683028665376e+01,2.209460984245205e+02,-2.759285104469687e+02,1.383577518672690e+02,-3.066479806614716e+01,2.506628277459239e+00];
+    const b=[-5.447609879822406e+01,1.615858368580409e+02,-1.556989798598866e+02,6.680131188771972e+01,-1.328068155288572e+01];
+    const c=[-7.784894002430293e-03,-3.223964580411365e-01,-2.400758277161838e+00,-2.549732539343734e+00,4.374664141464968e+00,2.938163982698783e+00];
+    const d=[7.784695709041462e-03,3.224671290700398e-01,2.445134137142996e+00,3.754408661907416e+00];
+    const pl=0.02425;let q,r;
+    if(p<pl){q=Math.sqrt(-2*Math.log(p));return (((((c[0]*q+c[1])*q+c[2])*q+c[3])*q+c[4])*q+c[5])/((((d[0]*q+d[1])*q+d[2])*q+d[3])*q+1);}
+    if(p<=1-pl){q=p-0.5;r=q*q;return (((((a[0]*r+a[1])*r+a[2])*r+a[3])*r+a[4])*r+a[5])*q/(((((b[0]*r+b[1])*r+b[2])*r+b[3])*r+b[4])*r+1);}
+    q=Math.sqrt(-2*Math.log(1-p));return -(((((c[0]*q+c[1])*q+c[2])*q+c[3])*q+c[4])*q+c[5])/((((d[0]*q+d[1])*q+d[2])*q+d[3])*q+1);
+  }
+  function tPdf(x,df){return Math.exp(gammaln((df+1)/2)-gammaln(df/2))/Math.sqrt(df*Math.PI)*Math.pow(1+x*x/df,-(df+1)/2);}
+  function tCdf(x,df){const xx=df/(df+x*x);const ib=0.5*betai(df/2,0.5,xx);return x>0?1-ib:ib;}
+  function tQuantile(p,df){ // bisection on tCdf
+    if(p<=0)return -Infinity; if(p>=1)return Infinity;
+    let lo=-60,hi=60;
+    for(let i=0;i<200;i++){const m=(lo+hi)/2; (tCdf(m,df)<p)?lo=m:hi=m;}
+    return (lo+hi)/2;
+  }
+  const binomPmf=(k,n,p)=> (k<0||k>n)?0: Math.exp(gammaln(n+1)-gammaln(k+1)-gammaln(n-k+1)+k*Math.log(p)+(n-k)*Math.log(1-p));
+  function binomCdf(k,n,p){let s=0;for(let i=0;i<=k;i++)s+=binomPmf(i,n,p);return s;}
+  const poissonPmf=(k,l)=> k<0?0: Math.exp(-l+k*Math.log(l)-gammaln(k+1));
+  function poissonCdf(k,l){let s=0;for(let i=0;i<=k;i++)s+=poissonPmf(i,l);return s;}
+  const expPdf=(x,l)=> x<0?0: l*Math.exp(-l*x);
+  const expCdf=(x,l)=> x<0?0: 1-Math.exp(-l*x);
+  const uniPdf=(x,a,b)=> (x<a||x>b)?0:1/(b-a);
+  const uniCdf=(x,a,b)=> x<a?0: x>b?1:(x-a)/(b-a);
+
+  return {sum,mean,median,quantile,mode,variance,variancePop,sd,sdPop,cv,range:range_,iqr,
+    ranks,covariance,pearson,spearman,spearmanSimple,regression,chiSquare,
+    erf,gammaln,factorial,choose,gammp,chiSquareCdf,betai,
+    normalPdf,normalCdf,normalInv,tPdf,tCdf,tQuantile,
+    binomPmf,binomCdf,poissonPmf,poissonCdf,expPdf,expCdf,uniPdf,uniCdf,sortAsc};
+})();
+
+/* ============================ PLOT (canvas) ============================ */
+/* Coordinate-aware canvas helper for bespoke plots (curves, areas, draggable pts). */
+function Plot(container, opts={}){
+  opts = Object.assign({xmin:0,xmax:1,ymin:0,ymax:1,padL:46,padR:14,padT:14,padB:34,height:300,bg:"#0a0e16",grid:true}, opts);
+  const wrap = container.classList && container.classList.contains("canvas-wrap") ? container
+             : el("div",{class:"canvas-wrap"});
+  if(wrap!==container) container.appendChild(wrap);
+  const cv = el("canvas"); wrap.appendChild(cv);
+  const ctx = cv.getContext("2d");
+  let W=0,H=opts.height,dpr=Math.min(window.devicePixelRatio||1,2.5);
+  const P = {opts, cv, ctx, wrap};
+
+  function resize(){
+    W = wrap.clientWidth || 600;
+    cv.width=W*dpr; cv.height=H*dpr; cv.style.height=H+"px";
+    ctx.setTransform(dpr,0,0,dpr,0,0);
+  }
+  P.X = x => opts.padL + (x-opts.xmin)/(opts.xmax-opts.xmin)*(W-opts.padL-opts.padR);
+  P.Y = y => H-opts.padB - (y-opts.ymin)/(opts.ymax-opts.ymin)*(H-opts.padT-opts.padB);
+  P.invX = px => opts.xmin + (px-opts.padL)/(W-opts.padL-opts.padR)*(opts.xmax-opts.xmin);
+  P.invY = py => opts.ymin + (H-opts.padB-py)/(H-opts.padT-opts.padB)*(opts.ymax-opts.ymin);
+  P.w = ()=>W; P.h = ()=>H;
+
+  P.clear=()=>{ctx.clearRect(0,0,W,H); if(opts.bg){ctx.fillStyle=opts.bg;ctx.fillRect(0,0,W,H);} return P;};
+  P.setY=(ymin,ymax)=>{opts.ymin=ymin;opts.ymax=ymax;return P;};
+  P.setX=(xmin,xmax)=>{opts.xmin=xmin;opts.xmax=xmax;return P;};
+
+  P.axes=(o={})=>{
+    o=Object.assign({xticks:6,yticks:5,xlabel:"",ylabel:"",xfmt:fmt.a,yfmt:fmt.a,color:"#33405e",text:"#8d9bb5",y0line:true},o);
+    ctx.strokeStyle=o.color;ctx.fillStyle=o.text;ctx.lineWidth=1;ctx.font="11px "+getCSS("--sans","sans-serif");
+    ctx.textAlign="center";ctx.textBaseline="top";
+    const xs=niceTicks(opts.xmin,opts.xmax,o.xticks);
+    for(const xv of xs){const px=P.X(xv);
+      if(opts.grid){ctx.strokeStyle="rgba(255,255,255,.045)";ctx.beginPath();ctx.moveTo(px,opts.padT);ctx.lineTo(px,H-opts.padB);ctx.stroke();}
+      ctx.strokeStyle=o.color;ctx.beginPath();ctx.moveTo(px,H-opts.padB);ctx.lineTo(px,H-opts.padB+4);ctx.stroke();
+      ctx.fillText(o.xfmt(xv),px,H-opts.padB+6);
+    }
+    ctx.textAlign="right";ctx.textBaseline="middle";
+    const ys=niceTicks(opts.ymin,opts.ymax,o.yticks);
+    for(const yv of ys){const py=P.Y(yv);
+      if(opts.grid){ctx.strokeStyle="rgba(255,255,255,.045)";ctx.beginPath();ctx.moveTo(opts.padL,py);ctx.lineTo(W-opts.padR,py);ctx.stroke();}
+      ctx.strokeStyle=o.color;ctx.beginPath();ctx.moveTo(opts.padL-4,py);ctx.lineTo(opts.padL,py);ctx.stroke();
+      ctx.fillText(o.yfmt(yv),opts.padL-7,py);
+    }
+    // axis lines
+    ctx.strokeStyle=o.color;ctx.lineWidth=1.4;
+    ctx.beginPath();ctx.moveTo(opts.padL,opts.padT);ctx.lineTo(opts.padL,H-opts.padB);ctx.lineTo(W-opts.padR,H-opts.padB);ctx.stroke();
+    if(o.xlabel){ctx.fillStyle=o.text;ctx.textAlign="center";ctx.textBaseline="bottom";ctx.font="12px "+getCSS("--sans","sans-serif");ctx.fillText(o.xlabel,(opts.padL+W-opts.padR)/2,H-2);}
+    if(o.ylabel){ctx.save();ctx.translate(11,(opts.padT+H-opts.padB)/2);ctx.rotate(-Math.PI/2);ctx.textAlign="center";ctx.textBaseline="top";ctx.fillStyle=o.text;ctx.fillText(o.ylabel,0,0);ctx.restore();}
+    return P;
+  };
+  P.func=(f,o={})=>{o=Object.assign({color:"#e7b54c",width:2.2,n:240},o);
+    ctx.strokeStyle=o.color;ctx.lineWidth=o.width;ctx.beginPath();let started=false;
+    for(let i=0;i<=o.n;i++){const x=opts.xmin+(opts.xmax-opts.xmin)*i/o.n;const y=f(x);
+      if(!isFinite(y)){started=false;continue;} const px=P.X(x),py=P.Y(y);
+      if(!started){ctx.moveTo(px,py);started=true;}else ctx.lineTo(px,py);}
+    ctx.stroke();return P;};
+  P.area=(f,x0,x1,o={})=>{o=Object.assign({color:"rgba(231,181,76,.28)",n:160},o);
+    ctx.fillStyle=o.color;ctx.beginPath();
+    const a=Math.max(x0,opts.xmin),b=Math.min(x1,opts.xmax);
+    ctx.moveTo(P.X(a),P.Y(0));
+    for(let i=0;i<=o.n;i++){const x=a+(b-a)*i/o.n;ctx.lineTo(P.X(x),P.Y(Math.max(opts.ymin,f(x))));}
+    ctx.lineTo(P.X(b),P.Y(0));ctx.closePath();ctx.fill();return P;};
+  P.line=(pts,o={})=>{o=Object.assign({color:"#54c7c0",width:2,dash:null},o);
+    ctx.strokeStyle=o.color;ctx.lineWidth=o.width;ctx.setLineDash(o.dash||[]);ctx.beginPath();
+    pts.forEach((p,i)=> i?ctx.lineTo(P.X(p[0]),P.Y(p[1])):ctx.moveTo(P.X(p[0]),P.Y(p[1])));
+    ctx.stroke();ctx.setLineDash([]);return P;};
+  P.vline=(x,o={})=>{o=Object.assign({color:"#f0726f",width:1.8,dash:[5,4]},o);
+    ctx.strokeStyle=o.color;ctx.lineWidth=o.width;ctx.setLineDash(o.dash||[]);
+    ctx.beginPath();ctx.moveTo(P.X(x),opts.padT);ctx.lineTo(P.X(x),H-opts.padB);ctx.stroke();ctx.setLineDash([]);return P;};
+  P.hline=(y,o={})=>{o=Object.assign({color:"#54c7c0",width:1.4,dash:[5,4]},o);
+    ctx.strokeStyle=o.color;ctx.lineWidth=o.width;ctx.setLineDash(o.dash||[]);
+    ctx.beginPath();ctx.moveTo(opts.padL,P.Y(y));ctx.lineTo(W-opts.padR,P.Y(y));ctx.stroke();ctx.setLineDash([]);return P;};
+  P.points=(pts,o={})=>{o=Object.assign({color:"#54c7c0",r:4,stroke:"#0a0e16"},o);
+    pts.forEach(p=>{ctx.beginPath();ctx.arc(P.X(p[0]),P.Y(p[1]),o.r,0,7);ctx.fillStyle=o.color;ctx.fill();
+      if(o.stroke){ctx.lineWidth=1.5;ctx.strokeStyle=o.stroke;ctx.stroke();}});return P;};
+  P.bars=(items,o={})=>{ // items: [{x0,x1,h,color}] in data coords
+    o=Object.assign({stroke:"#0a0e16"},o);
+    items.forEach(b=>{const x=P.X(b.x0),w=P.X(b.x1)-P.X(b.x0),y=P.Y(b.h),h=P.Y(0)-P.Y(b.h);
+      ctx.fillStyle=b.color||"#54c7c0";ctx.fillRect(x+0.5,y,Math.max(1,w-1),h);
+      if(o.stroke){ctx.strokeStyle=o.stroke;ctx.lineWidth=1;ctx.strokeRect(x+0.5,y,Math.max(1,w-1),h);}});return P;};
+  P.text=(x,y,str,o={})=>{o=Object.assign({color:"#e8ecf4",align:"left",baseline:"bottom",font:"12px "+getCSS("--sans","sans-serif"),px:false},o);
+    ctx.fillStyle=o.color;ctx.textAlign=o.align;ctx.textBaseline=o.baseline;ctx.font=o.font;
+    ctx.fillText(str, o.px?x:P.X(x), o.px?y:P.Y(y));return P;};
+  P.ctx=ctx;
+  P.resize=resize;
+  // pointer -> data coords (for draggable widgets); pass a mouse/touch/pointer event
+  P.pointer=(evt)=>{const r=cv.getBoundingClientRect();
+    const cx=(evt.touches&&evt.touches[0]?evt.touches[0].clientX:evt.clientX)-r.left;
+    const cy=(evt.touches&&evt.touches[0]?evt.touches[0].clientY:evt.clientY)-r.top;
+    return {px:cx,py:cy,x:P.invX(cx),y:P.invY(cy)};};
+  P.onResize=null;
+  const ro = new ResizeObserver(()=>{const old=W;resize();if(P.onResize)P.onResize();});
+  ro.observe(wrap);
+  P.destroy=()=>{try{ro.disconnect();}catch(e){}};
+  resize();
+  return P;
+}
+function niceTicks(min,max,n){
+  if(min===max){return [min];}
+  const span=max-min, step0=span/Math.max(1,n), mag=Math.pow(10,Math.floor(Math.log10(step0)));
+  const norm=step0/mag; let step= norm<1.5?1: norm<3?2: norm<7?5:10; step*=mag;
+  const start=Math.ceil(min/step)*step, out=[];
+  for(let v=start;v<=max+step*1e-6;v+=step) out.push(+v.toFixed(10));
+  return out;
+}
+function getCSS(varName,fallback){
+  const v=getComputedStyle(document.documentElement).getPropertyValue(varName).trim();
+  return v||fallback;
+}
+
+/* ============================ CHART.JS THEME ============================ */
+if(window.Chart){
+  Chart.defaults.color="#8d9bb5";
+  Chart.defaults.borderColor="rgba(255,255,255,.07)";
+  Chart.defaults.font.family=getCSS("--sans","sans-serif");
+  Chart.defaults.font.size=12;
+  Chart.defaults.plugins.legend.labels.color="#c3ccdc";
+  Chart.defaults.plugins.tooltip.backgroundColor="#0b0f18";
+  Chart.defaults.plugins.tooltip.borderColor="#33405e";
+  Chart.defaults.plugins.tooltip.borderWidth=1;
+}
+const PAL={gold:"#e7b54c",teal:"#54c7c0",violet:"#9d8cff",blue:"#5fa8ff",good:"#5ed39a",bad:"#f0726f",
+  set:["#54c7c0","#e7b54c","#9d8cff","#5fa8ff","#5ed39a","#f0726f","#f2b65a","#7ed0ff"]};
+
+/* ============================ STATE / PROGRESS ============================ */
+const LESSONS=[]; // filled by registerLesson()
+const STORE_KEY="bsta01_progress_v2";
+let progress = loadProgress();
+function loadProgress(){ try{return JSON.parse(localStorage.getItem(STORE_KEY))||{done:{},quiz:{}};}catch(e){return {done:{},quiz:{}};} }
+function saveProgress(){ try{localStorage.setItem(STORE_KEY,JSON.stringify(progress));}catch(e){} }
+function markDone(secId,val){ if(val)progress.done[secId]=1; else delete progress.done[secId]; saveProgress(); updateProgressUI(); }
+function isDone(secId){return !!progress.done[secId];}
+function saveQuiz(lid,score,total){ progress.quiz[lid]={score,total}; saveProgress(); updateProgressUI(); }
+
+function lessonSections(L){return L.sections;}
+function lessonProgress(L){
+  const secs=lessonSections(L); const done=secs.filter(s=>isDone(L.id+"-"+s.idx)).length;
+  let total=secs.length, hit=done;
+  if(L.quiz&&L.quiz.length){ total+=1; if(progress.quiz[L.id]) hit+=1; }
+  return total? hit/total : 0;
+}
+function overallProgress(){
+  let t=0,h=0;
+  LESSONS.forEach(L=>{const secs=lessonSections(L);t+=secs.length;h+=secs.filter(s=>isDone(L.id+"-"+s.idx)).length;
+    if(L.quiz&&L.quiz.length){t+=1;if(progress.quiz[L.id])h+=1;}});
+  return t? h/t : 0;
+}
+
+/* ============================ LESSON REGISTRY ============================ */
+function registerLesson(L){
+  // normalize section indices
+  L.sections.forEach((s,i)=>{ s.idx = i+1; });
+  LESSONS.push(L);
+  LESSONS.sort((a,b)=>a.id-b.id);
+}
+window.App = { registerLesson, Stats, Plot, fmt, el, PAL };
+
+/* ============================ RENDERER (blocks) ============================ */
+let activeCleanups=[];
+function cleanupView(){ activeCleanups.forEach(fn=>{try{fn();}catch(e){}}); activeCleanups=[]; }
+function onCleanup(fn){ activeCleanups.push(fn); }
+
+function makeChart(canvas, config){
+  const ch=new Chart(canvas, config);
+  onCleanup(()=>ch.destroy());
+  return ch;
+}
+function typeset(node){
+  if(window.MathJax && MathJax.typesetPromise && window.__mathjaxReady){
+    MathJax.typesetPromise([node]).catch(()=>{});
+  } else {
+    setTimeout(()=>typeset(node), 180);
+  }
+}
+
+function renderBlock(b){
+  switch(b.t){
+    case "p":    return el("p",{class:"blk"+(b.lead?" lead":""),html:b.html});
+    case "h":    return el("h2",{class:"blk h"},b.icon?el("span",{class:"hicon"},b.icon):null, document.createTextNode(b.text));
+    case "sub":  return el("h3",{class:"blk sub",html:b.html||b.text});
+    case "list": {const L=el(b.ordered?"ol":"ul",{class:"blk"}); (b.items||[]).forEach(i=>L.appendChild(el("li",{html:i}))); return L;}
+    case "def":  return box("def","Definition","📐", b.term?el("div",{class:"term"},b.term):null, b.title?el("div",{class:"box-title"},b.title):null, htmlFrag(b.html));
+    case "example": return box("ex","Beispiel","🧮", b.title?el("div",{class:"box-title"},b.title):null, htmlFrag(b.html));
+    case "why":  return box("why","Warum brauche ich das?","🤔", b.title?el("div",{class:"box-title"},b.title):null, htmlFrag(b.html));
+    case "aha":  return box("aha","Aha-Moment","💡", b.title?el("div",{class:"box-title"},b.title):null, htmlFrag(b.html));
+    case "warn": return box("warn",b.tag||"Achtung","⚠️", b.title?el("div",{class:"box-title"},b.title):null, htmlFrag(b.html));
+    case "quote":{const q=el("div",{class:"box box-quote"}); q.appendChild(htmlFrag(b.html)); if(b.source)q.appendChild(el("span",{class:"qsource"},"— "+b.source)); return q;}
+    case "formula": {
+      const f=el("div",{class:"formula"+(b.caption?" named":"")});
+      f.appendChild(el("div",{html:"\\["+b.tex+"\\]"}));
+      if(b.caption) f.appendChild(el("span",{class:"fcap",html:b.caption}));
+      return f;
+    }
+    case "table": return renderTable(b);
+    case "widget": return renderWidget(b);
+    case "html": return htmlFrag(b.html);
+    case "divider": return el("div",{class:"sec-divider"});
+    default: return el("p",{class:"blk muted"},"[unbekannter Block: "+b.t+"]");
+  }
+}
+function box(kind,tag,icon,...kids){
+  return el("div",{class:"box box-"+kind},
+    el("span",{class:"box-tag"},icon+" ",tag), ...kids);
+}
+function htmlFrag(html){const d=el("div");d.innerHTML=html||"";const f=document.createDocumentFragment();while(d.firstChild)f.appendChild(d.firstChild);return f;}
+function renderTable(b){
+  const wrap=el("div",{class:"tbl-wrap"});
+  const t=el("table",{class:"data"+(b.compact?" compact":"")});
+  if(b.headers){const tr=el("tr");b.headers.forEach(h=>tr.appendChild(el("th",{html:String(h)})));t.appendChild(el("thead",{},tr));}
+  const tb=el("tbody");
+  (b.rows||[]).forEach((r,ri)=>{const tr=el("tr",{class:(b.highlight&&b.highlight.includes(ri))?"hl":""});
+    r.forEach(c=>tr.appendChild(el("td",{html:c===null||c===undefined?"":String(c)})));tb.appendChild(tr);});
+  t.appendChild(tb);
+  if(b.caption)t.appendChild(el("caption",{html:b.caption}));
+  wrap.appendChild(t);return wrap;
+}
+function renderWidget(b){
+  const card=el("div",{class:"widget"});
+  card.appendChild(el("div",{class:"widget-bar"},
+    el("span",{class:"wico"},b.icon||"🎛️"),
+    el("span",{class:"wtitle"},b.title||"Interaktiv"),
+    el("span",{class:"wtag"},"interaktiv")));
+  const body=el("div",{class:"widget-body"});
+  if(b.hint) body.appendChild(el("p",{class:"widget-hint",html:b.hint}));
+  const mount=el("div"); body.appendChild(mount); card.appendChild(body);
+  // defer render until in DOM
+  const ctx={el,Stats,Plot,fmt,makeChart,onCleanup,PAL,Chart:window.Chart,typeset:()=>typeset(mount),clamp,range,parseNums,niceTicks};
+  queueMicrotask(()=>{ try{ if(typeof b.render==="function") b.render(mount,ctx); }
+                       catch(e){ mount.appendChild(el("p",{class:"muted"},"⚠️ Widget-Fehler: "+e.message)); console.error("Widget",b.title,e);} });
+  return card;
+}
+
+/* ============================ VIEWS ============================ */
+function renderBlocks(blocks,container){
+  (blocks||[]).forEach(b=>{ try{container.appendChild(renderBlock(b));}catch(e){console.error("block",b,e);} });
+}
+
+function viewSection(L, sIdx){
+  const sec=L.sections[sIdx-1]; if(!sec){return viewDashboard();}
+  cleanupView();
+  const v=el("div",{class:"view"});
+  v.appendChild(el("div",{class:"crumb"},"Lektion "+L.id+" · "+L.title));
+  v.appendChild(el("h1",{class:"title"},sec.num+"  "+sec.title));
+  if(sec.intro) v.appendChild(el("p",{class:"subtitle",html:sec.intro}));
+  v.appendChild(el("div",{class:"sec-divider"}));
+  renderBlocks(sec.blocks,v);
+
+  // done toggle
+  const secId=L.id+"-"+sec.idx;
+  const dt=el("div",{class:"done-toggle"+(isDone(secId)?" is-done":"")});
+  const cb=el("button",{class:"btn"+(isDone(secId)?" primary":"")},isDone(secId)?"✓ Erledigt":"Als erledigt markieren");
+  cb.addEventListener("click",()=>{const nd=!isDone(secId);markDone(secId,nd);
+    dt.classList.toggle("is-done",nd);cb.className="btn"+(nd?" primary":"");cb.textContent=nd?"✓ Erledigt":"Als erledigt markieren";});
+  dt.appendChild(cb);
+  dt.appendChild(el("span",{class:"muted small"},"Markiere Unterkapitel als erledigt, um deinen Fortschritt zu verfolgen."));
+  v.appendChild(dt);
+
+  // section nav
+  v.appendChild(sectionNav(L,sIdx));
+  mount(v);
+  typeset(v);
+}
+function sectionNav(L,sIdx){
+  const nav=el("div",{class:"sec-nav"});
+  const prev = sIdx>1 ? {l:L.id,s:sIdx-1,label:"← "+L.sections[sIdx-2].num+" "+L.sections[sIdx-2].title}
+            : (L.id>1 ? (()=>{const PL=LESSONS.find(x=>x.id===L.id-1);return {l:PL.id,s:PL.sections.length,label:"← Lektion "+PL.id};})() : null);
+  let next=null;
+  if(sIdx<L.sections.length) next={hash:"#/l/"+L.id+"/"+(sIdx+1),label:L.sections[sIdx].num+" "+L.sections[sIdx].title+" →"};
+  else if(L.quiz&&L.quiz.length) next={hash:"#/quiz/"+L.id,label:"Quiz Lektion "+L.id+" →",primary:true};
+  else {const NL=LESSONS.find(x=>x.id===L.id+1); if(NL)next={hash:"#/l/"+NL.id+"/1",label:"Lektion "+NL.id+" →"};}
+  nav.appendChild(prev?el("a",{class:"btn",href:"#/l/"+prev.l+"/"+prev.s},prev.label):el("span"));
+  nav.appendChild(next?el("a",{class:"btn"+(next.primary?" primary":""),href:next.hash},next.label):el("span"));
+  return nav;
+}
+
+function viewQuiz(L){
+  cleanupView();
+  if(!L.quiz||!L.quiz.length){return viewDashboard();}
+  const v=el("div",{class:"view"});
+  v.appendChild(el("div",{class:"crumb"},"Lektion "+L.id+" · "+L.title));
+  v.appendChild(el("h1",{class:"title"},"Quiz – Lektion "+L.id));
+  v.appendChild(el("p",{class:"subtitle"},"Teste dein Wissen. "+L.quiz.length+" Fragen · ab 80 % gilt als bestanden."));
+
+  const card=el("div",{class:"quiz-card"});
+  card.appendChild(el("div",{class:"quiz-head"},
+    el("span",{class:"qh-ico"},"🧠"),el("h3",{},L.title),
+    el("span",{class:"qmeta"},L.quiz.length+" Fragen")));
+  const answered=new Array(L.quiz.length).fill(false);
+  let correct=0;
+  const foot=el("div",{class:"quiz-foot"});
+  const scoreEl=el("span",{class:"quiz-score"},"0 / "+L.quiz.length);
+  const bar=el("div",{class:"scorebar"},el("div",{class:"fill"}));
+  function refresh(){
+    const done=answered.filter(Boolean).length;
+    scoreEl.textContent=correct+" / "+L.quiz.length+(done===L.quiz.length?"  ("+Math.round(correct/L.quiz.length*100)+" %)":"");
+    bar.querySelector(".fill").style.width=(correct/L.quiz.length*100)+"%";
+    if(done===L.quiz.length){ saveQuiz(L.id,correct,L.quiz.length);
+      let msg = correct/L.quiz.length>=0.8? "🎉 Bestanden! Stark.": correct/L.quiz.length>=0.5? "Fast! Schau dir die markierten Fragen nochmal an.":"Nochmal üben lohnt sich – zurück ins Kapitel!";
+      if(!foot.querySelector(".qdone")) foot.appendChild(el("span",{class:"qdone muted small"},msg));
+    }
+  }
+  L.quiz.forEach((q,qi)=>{
+    const qb=el("div",{class:"q-block"});
+    qb.appendChild(el("div",{class:"q-num"},"FRAGE "+(qi+1)));
+    qb.appendChild(el("div",{class:"q-text",html:q.q}));
+    const opts=el("div",{class:"q-opts"});
+    const expl=el("div",{class:"q-explain",html:"<b>Erklärung:</b> "+(q.explain||"")});
+    q.options.forEach((o,oi)=>{
+      const opt=el("div",{class:"opt"},el("span",{class:"mark"},String.fromCharCode(65+oi)),el("span",{html:o}));
+      opt.addEventListener("click",()=>{
+        if(answered[qi])return; answered[qi]=true;
+        const right=oi===q.correct;
+        if(right){correct++;opt.classList.add("correct");}
+        else{opt.classList.add("wrong"); opts.children[q.correct].classList.add("correct");}
+        [...opts.children].forEach(c=>c.classList.add("disabled"));
+        expl.classList.add("show");
+        refresh();
+      });
+      opts.appendChild(opt);
+    });
+    qb.appendChild(opts);qb.appendChild(expl);card.appendChild(qb);
+  });
+  foot.appendChild(scoreEl);foot.appendChild(bar);
+  const retry=el("button",{class:"btn ghost"},"↻ Neu starten");
+  retry.addEventListener("click",()=>route()); foot.appendChild(retry);
+  card.appendChild(foot);
+  v.appendChild(card);
+
+  // nav to next lesson
+  const NL=LESSONS.find(x=>x.id===L.id+1);
+  const nav=el("div",{class:"sec-nav"});
+  nav.appendChild(el("a",{class:"btn",href:"#/l/"+L.id+"/"+L.sections.length},"← zurück zur Lektion"));
+  nav.appendChild(NL?el("a",{class:"btn primary",href:"#/l/"+NL.id+"/1"},"Lektion "+NL.id+" →"):el("a",{class:"btn primary",href:"#/"},"Zur Übersicht →"));
+  v.appendChild(nav);
+  mount(v); typeset(v);
+}
+
+function viewDashboard(){
+  cleanupView();
+  const v=el("div",{class:"view"});
+  const hero=el("div",{class:"hero"});
+  hero.appendChild(el("span",{class:"pill"},"IU · BSTA01-02 · Prof. Dr. Bornewasser-Hermes"));
+  hero.appendChild(el("h1",{},"Statistik — interaktiv verstehen"));
+  hero.appendChild(el("p",{html:"Das komplette Modul in 8 Lektionen: von Skalenniveaus über Wahrscheinlichkeit bis zu Hypothesentests. Jedes Unterkapitel mit Erklärungen in Klartext, allen Formeln, den Original-Beispielen aus dem Skript — und einer interaktiven Simulation zum Selbst-Ausprobieren."}));
+  const ov=el("div",{class:"overall"});
+  const op=overallProgress();
+  ov.appendChild(el("div",{class:"big"},Math.round(op*100)+"%"));
+  const obarWrap=el("div",{style:{flex:"1",minWidth:"160px"}});
+  obarWrap.appendChild(el("div",{class:"small muted",style:{marginBottom:"5px"}},"Dein Gesamtfortschritt"));
+  obarWrap.appendChild(el("div",{class:"scorebar"},el("div",{class:"fill",style:{width:(op*100)+"%"}})));
+  ov.appendChild(obarWrap);
+  hero.appendChild(ov);
+  v.appendChild(hero);
+
+  const grid=el("div",{class:"dash-grid"});
+  LESSONS.forEach(L=>{
+    const p=lessonProgress(L);
+    const card=el("div",{class:"dash-card",onclick:()=>location.hash="#/l/"+L.id+"/1"});
+    card.appendChild(el("div",{class:"dc-num"},"LEKTION "+L.id));
+    card.appendChild(el("div",{class:"dc-tit"},L.title));
+    card.appendChild(el("div",{class:"dc-bar"},el("div",{class:"f",style:{width:(p*100)+"%"}})));
+    card.appendChild(el("div",{class:"dc-meta"},el("span",{},L.sections.length+" Kapitel"),el("span",{},Math.round(p*100)+"%")));
+    grid.appendChild(card);
+  });
+  v.appendChild(grid);
+  v.appendChild(el("div",{class:"sec-nav"},
+    el("a",{class:"btn",href:"#/formelsammlung"},"📕 Formelsammlung & Tabellen"),
+    el("a",{class:"btn primary",href:"#/l/1/1"},"Los geht's mit Lektion 1 →")));
+  mount(v); typeset(v);
+}
+
+function mount(node){ const m=$("#main"); m.innerHTML=""; m.appendChild(node); m.scrollTop=0; window.scrollTo(0,0); }
+
+/* ============================ SIDEBAR ============================ */
+function buildSidebar(){
+  const sb=$("#sidebar"); sb.innerHTML="";
+  const top=el("div",{class:"nav-top"});
+  top.appendChild(el("a",{href:"#/",id:"navHome"},"🏠 Start"));
+  top.appendChild(el("a",{href:"#/formelsammlung",id:"navFormel"},"📕 Formeln"));
+  sb.appendChild(top);
+
+  LESSONS.forEach(L=>{
+    const g=el("div",{class:"lesson-group",id:"lg-"+L.id});
+    const head=el("div",{class:"lesson-head"});
+    head.appendChild(el("div",{class:"lnum"},String(L.id)));
+    head.appendChild(el("div",{class:"ltit"},L.title));
+    head.appendChild(ringEl(lessonProgress(L),"ring-"+L.id));
+    head.appendChild(el("div",{class:"lchev"},"▶"));
+    head.addEventListener("click",()=>g.classList.toggle("open"));
+    g.appendChild(head);
+    const list=el("div",{class:"section-list"});
+    L.sections.forEach(s=>{
+      const secId=L.id+"-"+s.idx;
+      const it=el("div",{class:"section-item"+(isDone(secId)?" done":""),id:"si-"+secId,
+        onclick:()=>{location.hash="#/l/"+L.id+"/"+s.idx; closeMobile();}});
+      it.appendChild(el("span",{class:"snum"},s.num));
+      it.appendChild(el("span",{class:"stit"},s.title));
+      it.appendChild(el("span",{class:"scheck"},"✓"));
+      list.appendChild(it);
+    });
+    if(L.quiz&&L.quiz.length){
+      const it=el("div",{class:"section-item quizrow"+(progress.quiz[L.id]?" done":""),id:"si-quiz-"+L.id,
+        onclick:()=>{location.hash="#/quiz/"+L.id; closeMobile();}});
+      it.appendChild(el("span",{class:"snum"},"🧠"));
+      it.appendChild(el("span",{class:"stit"},"Quiz"+(progress.quiz[L.id]?" ("+progress.quiz[L.id].score+"/"+progress.quiz[L.id].total+")":"")));
+      it.appendChild(el("span",{class:"scheck"},"✓"));
+      list.appendChild(it);
+    }
+    g.appendChild(list);
+    sb.appendChild(g);
+  });
+  const reset=el("div",{class:"side-reset"});
+  const rb=el("button",{},"⟲ Fortschritt zurücksetzen");
+  rb.addEventListener("click",()=>{if(confirm("Gesamten Lernfortschritt löschen?")){progress={done:{},quiz:{}};saveProgress();updateProgressUI();buildSidebar();route();}});
+  reset.appendChild(rb); sb.appendChild(reset);
+}
+function ringEl(p,id){
+  const r=14,c=2*Math.PI*r;
+  const wrap=el("div",{class:"ring",id:id});
+  wrap.innerHTML=`<svg width="30" height="30" viewBox="0 0 30 30">
+    <circle class="bg" cx="15" cy="15" r="${r}" fill="none" stroke-width="3"></circle>
+    <circle class="fg" cx="15" cy="15" r="${r}" fill="none" stroke-width="3" stroke-linecap="round"
+      stroke-dasharray="${c}" stroke-dashoffset="${c*(1-p)}"></circle></svg>`;
+  return wrap;
+}
+function updateProgressUI(){
+  const op=overallProgress();
+  $("#topProgFill").style.width=(op*100)+"%";
+  $("#topProgPct").textContent=Math.round(op*100)+"%";
+  LESSONS.forEach(L=>{
+    const p=lessonProgress(L), ring=$("#ring-"+L.id+" .fg");
+    if(ring){const c=2*Math.PI*14;ring.style.strokeDashoffset=c*(1-p);}
+    L.sections.forEach(s=>{const it=$("#si-"+L.id+"-"+s.idx);if(it)it.classList.toggle("done",isDone(L.id+"-"+s.idx));});
+    if(L.quiz&&L.quiz.length){const qi=$("#si-quiz-"+L.id);
+      if(qi){qi.classList.toggle("done",!!progress.quiz[L.id]);
+        qi.querySelector(".stit").textContent="Quiz"+(progress.quiz[L.id]?" ("+progress.quiz[L.id].score+"/"+progress.quiz[L.id].total+")":"");}}
+  });
+}
+function setActiveNav(kind,L,sIdx){
+  $$("#sidebar .section-item").forEach(e=>e.classList.remove("active"));
+  $$(".nav-top a").forEach(e=>e.classList.remove("active"));
+  $$(".lesson-group").forEach(g=>g.classList.remove("open"));
+  if(kind==="section"){const it=$("#si-"+L.id+"-"+sIdx);if(it)it.classList.add("active");$("#lg-"+L.id)?.classList.add("open");}
+  else if(kind==="quiz"){const it=$("#si-quiz-"+L.id);if(it)it.classList.add("active");$("#lg-"+L.id)?.classList.add("open");}
+  else if(kind==="home"){$("#navHome").classList.add("active");}
+  else if(kind==="formel"){$("#navFormel").classList.add("active");}
+}
+function closeMobile(){$("#sidebar").classList.remove("open");$("#scrim").classList.remove("show");}
+
+/* ============================ ROUTER ============================ */
+function route(){
+  const h=location.hash||"#/";
+  const m=h.match(/^#\/l\/(\d+)\/(\d+)/);
+  if(m){const L=LESSONS.find(x=>x.id===+m[1]); if(L){viewSection(L,+m[2]);setActiveNav("section",L,+m[2]);return;}}
+  const q=h.match(/^#\/quiz\/(\d+)/);
+  if(q){const L=LESSONS.find(x=>x.id===+q[1]); if(L){viewQuiz(L);setActiveNav("quiz",L);return;}}
+  if(h.startsWith("#/formelsammlung")){viewFormel();setActiveNav("formel");return;}
+  viewDashboard();setActiveNav("home");
+}
+
+/* ============================ INIT ============================ */
+function initApp(){
+  buildSidebar();
+  updateProgressUI();
+  window.addEventListener("hashchange",route);
+  $("#menuBtn").addEventListener("click",()=>{$("#sidebar").classList.toggle("open");$("#scrim").classList.toggle("show");});
+  $("#scrim").addEventListener("click",closeMobile);
+  route();
+  setTimeout(()=>$("#loading").classList.add("hide"),250);
+}
+</script>
+
+<!-- ===================================================================
+     LESSON MODULES  (each file calls App.registerLesson({...}))
+     The build step replaces the marker below with build/lektion1..8.js
+     =================================================================== -->
+<script>
+/*__LESSON_MODULES__*/
+</script>
+
+<!-- Formelsammlung view depends on lessons being registered; defined here -->
+<script>
+function viewFormel(){
+  cleanupView();
+  const v=el("div",{class:"view"});
+  v.appendChild(el("div",{class:"crumb"},"Nachschlagen"));
+  v.appendChild(el("h1",{class:"title"},"📕 Formelsammlung & Tabellen"));
+  v.appendChild(el("p",{class:"subtitle"},"Alle wichtigen Formeln des Moduls auf einen Blick – plus die Verteilungstabellen aus dem Skript."));
+  v.appendChild(el("div",{class:"sec-divider"}));
+
+  // collect formulas registered by lessons
+  const groups={};
+  LESSONS.forEach(L=>{
+    (L.formulas||[]).forEach(f=>{ const g=f.group||("Lektion "+L.id); (groups[g]=groups[g]||[]).push(f); });
+  });
+  const order=Object.keys(groups);
+  if(order.length===0){
+    v.appendChild(el("p",{class:"muted"},"Die Formeln werden in den jeweiligen Lektionen angezeigt."));
+  }
+  order.forEach(g=>{
+    v.appendChild(el("h2",{class:"blk h"},g));
+    groups[g].forEach(f=>{
+      const card=el("div",{class:"formula named"});
+      if(f.name) card.appendChild(el("div",{class:"fcap",style:{borderTop:"none",borderBottom:"1px dashed var(--border)",marginTop:"0",marginBottom:"8px",paddingBottom:"8px",color:"var(--accent)"},html:f.name}));
+      card.appendChild(el("div",{html:"\\["+f.tex+"\\]"}));
+      if(f.note) card.appendChild(el("span",{class:"fcap",html:f.note}));
+      v.appendChild(card);
+    });
+  });
+
+  // distribution tables (from the Skript's Formelsammlung)
+  v.appendChild(el("h2",{class:"blk h"},"Tabelle: Standardnormalverteilung Φ(z)"));
+  v.appendChild(el("p",{class:"blk muted small"},"Kumulierte Wahrscheinlichkeit P(Z ≤ z) für z ≥ 0. Für negative z gilt Φ(−z) = 1 − Φ(z)."));
+  v.appendChild(zTableEl());
+  v.appendChild(el("h2",{class:"blk h"},"Wichtige Quantile"));
+  v.appendChild(quantileTableEl());
+  v.appendChild(el("h2",{class:"blk h"},"Tabelle: Quantile der t-Verteilung"));
+  v.appendChild(tTableEl());
+  v.appendChild(el("p",{class:"srcnote"},"Quelle der Tabellenwerte: IU-Skript BSTA01-02, Formelsammlung (Bornewasser-Hermes, 2025; nach Bortz & Schuster, 2010)."));
+
+  mount(v); typeset(v);
+}
+function zTableEl(){
+  const headers=["z","0,00","0,01","0,02","0,03","0,04","0,05","0,06","0,07","0,08","0,09"];
+  const rows=[];
+  for(let zi=0; zi<=30; zi++){
+    const z=zi/10; const r=[fmt.n(z,1)];
+    for(let c=0;c<10;c++){ r.push(fmt.n(Stats.normalCdf(z+c/100),4)); }
+    rows.push(r);
+  }
+  return renderTable({headers,rows,compact:true,caption:"Φ(z) = P(Z ≤ z), berechnet (stimmt mit der Skript-Tabelle überein)."});
+}
+function quantileTableEl(){
+  const ps=[0.90,0.95,0.975,0.99,0.995];
+  return renderTable({headers:["Wahrscheinlichkeit p","z (Standardnormal)","Typische Anwendung"],
+    rows:[
+      ["0,90","1,2816","KI 80 % / einseitig 90 %"],
+      ["0,95","1,6449","KI 90 % / einseitig 95 %"],
+      ["0,975","1,9600","KI 95 % (zweiseitig)"],
+      ["0,99","2,3263","KI 98 % / einseitig 99 %"],
+      ["0,995","2,5758","KI 99 % (zweiseitig)"]
+    ]});
+}
+function tTableEl(){
+  const cols=[0.90,0.95,0.975,0.99,0.995];
+  const dfs=[1,2,3,4,5,6,7,8,9,10,12,15,20,25,30,40,60,120];
+  const headers=["df \\ p","0,90","0,95","0,975","0,99","0,995"];
+  const rows=dfs.map(df=>[String(df),...cols.map(p=>fmt.n(Stats.tQuantile(p,df),3))]);
+  rows.push(["∞ (z)",...cols.map(p=>fmt.n(Stats.normalInv(p),3))]);
+  return renderTable({headers,rows,compact:true,caption:"Quantile t(p; df) (berechnet)."});
+}
+
+document.addEventListener("DOMContentLoaded",initApp);
+if(document.readyState!=="loading") initApp();
+</script>
+</body>
+</html>
