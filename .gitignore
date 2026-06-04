@@ -8,6 +8,7 @@ build/spec_lektion*.md
 # Tooling / Zwischenstände
 node_modules/
 shots/
+shot*.mjs
 *.output
 
 # OS
