@@ -363,7 +363,7 @@ function el(tag, attrs, ...kids){
     else if(k==="html") n.innerHTML = v;
     else if(k==="text") n.textContent = v;
     else if(k==="style" && typeof v==="object") Object.assign(n.style, v);
-    else if(k.startsWith("on") && typeof v==="function") n.addEventListener(k.slice(2), v);
+    else if(k.startsWith("on") && typeof v==="function") n.addEventListener(k.slice(2).toLowerCase(), v);
     else if(v!==null && v!==undefined && v!==false) n.setAttribute(k, v);
   }
   for(let c of kids.flat()){
@@ -933,7 +933,15 @@ function viewDashboard(){
   mount(v); typeset(v);
 }
 
-function mount(node){ const m=$("#main"); m.innerHTML=""; m.appendChild(node); m.scrollTop=0; window.scrollTo(0,0); }
+function mount(node){
+  const m=$("#main"); m.innerHTML=""; m.appendChild(node);
+  // Sofort (ohne smooth-Animation) nach oben – sonst landet man beim
+  // Themenwechsel auf der Scroll-Position der vorherigen Seite.
+  const de=document.documentElement, prev=de.style.scrollBehavior;
+  de.style.scrollBehavior="auto";
+  m.scrollTop=0; window.scrollTo(0,0);
+  requestAnimationFrame(()=>{ window.scrollTo(0,0); de.style.scrollBehavior=prev; });
+}
 
 /* ============================ SIDEBAR ============================ */
 function buildSidebar(){
@@ -1013,6 +1021,7 @@ function closeMobile(){$("#sidebar").classList.remove("open");$("#scrim").classL
 
 /* ============================ ROUTER ============================ */
 function route(){
+  closeMobile(); // Mobile: Sidebar bei jedem Seitenwechsel schließen (auch via Start/Formeln/Dashboard-Karten)
   const h=location.hash||"#/";
   const m=h.match(/^#\/l\/(\d+)\/(\d+)/);
   if(m){const L=LESSONS.find(x=>x.id===+m[1]); if(L){viewSection(L,+m[2]);setActiveNav("section",L,+m[2]);return;}}

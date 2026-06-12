@@ -92,7 +92,7 @@
           {t:"quote", source:"Bornewasser-Hermes, BSTA01-02, S. 100",
             html:"Anders als bei der Korrelation gehen wir aber jetzt konkret davon aus, dass die Variable x die Variable y beeinflusst und in keinem Fall andersherum."},
 
-          {t:"h", text:"Das Leitbeispiel: Alkohol &amp; Reaktionszeit", icon:"🍷"},
+          {t:"h", text:"Das Leitbeispiel: Alkohol & Reaktionszeit", icon:"🍷"},
           {t:"p", html:"Auf einer Party wird bei 10 Gästen die <b>Alkoholkonzentration</b> (Promille) gemessen, anschließend ein <b>Reaktionstest</b> am Laptop (in Millisekunden). Person 1 ist nüchtern (0 Promille) und reagiert in 590 ms; Person 7 hat 1,4 Promille und braucht schon 687 ms."},
           {t:"table",
             caption:"Tabelle 30 — Ausgangsdaten für die einfache lineare Regression (n = 10)",
@@ -207,7 +207,7 @@
       /* ============================================================ 4.3 ==== */
       {
         num:"4.3",
-        title:"Qualitätsbeurteilung (Korrelationskoeffizient &amp; Bestimmtheitsmaß R²)",
+        title:"Qualitätsbeurteilung (Korrelationskoeffizient & Bestimmtheitsmaß R²)",
         intro:"Die KQM findet für <b>jede</b> Punktwolke eine Gerade — auch für völligen Unsinn. Deshalb müssen wir prüfen, ob die Gerade überhaupt etwas taugt.",
         blocks:[
           {t:"p", lead:true, html:"Die Methode der kleinsten Quadrate ist gnadenlos hilfsbereit: Sie spuckt selbst dann eine Gerade aus, wenn die Punkte aussehen wie ein Spritzer Tomatensoße. Eine Gerade <i>haben</i> heißt also nicht, eine <i>gute</i> Gerade haben."},
@@ -448,7 +448,7 @@
     el.appendChild(eqn);
 
     el.appendChild(ctx.el("p",{class:"widget-hint"},
-      "Tipp: In den Plot klicken setzt einen neuen Punkt. Mit dem Skript-Beispiel müssen b ≈ 53,84 · a ≈ 596,50 · r ≈ 0,742 · R² ≈ 0,551 erscheinen."));
+      "Tipp: In den Plot klicken setzt einen neuen Punkt. Mit dem Skript-Beispiel müssen b ≈ 53,84 · a ≈ 596,5 · r ≈ 0,742 · R² ≈ 55,0 % erscheinen."));
 
     const P = ctx.Plot(wrap, {xmin:0,xmax:1,ymin:0,ymax:1, height:360, grid:true});
     ctx.onCleanup(()=>P.destroy());
@@ -563,8 +563,16 @@
    *  WIDGET 3 — Alkohol-Reaktionszeit-Demo (Steps, 4.3)
    * ======================================================================== */
   function renderStepsDemo(el, ctx){
-    const k = kennzahlen(ALK.x, ALK.y);     // exakte Werte
+    const k = kennzahlen(ALK.x, ALK.y);     // exakte Werte (für die Grafik)
     const f = xv => k.a + k.b*xv;
+    /* ANZEIGE-Werte: Rundungskette wie im Skript (jeder Zwischenschritt auf
+       3 Dezimalen gerundet), damit jede gezeigte Zahl exakt dem Skript,
+       dem Lektionstext und dem Quiz entspricht. */
+    const bD  = Math.round(k.b*1000)/1000;                 // 53,844
+    const aD  = Math.round((k.yb - bD*k.xb)*1000)/1000;    // 596,503
+    const yhD = Math.round((aD + bD*0.4)*1000)/1000;       // 618,041
+    const rD  = Math.round(k.r*1000)/1000;                 // 0,742
+    const r2D = Math.round(rD*rD*1000)/1000;               // 0,551
 
     let cur = 0;
     const TOTAL = 8;
@@ -649,26 +657,26 @@
         body.appendChild(stepBox("③ Regressionskoeffizient b — ZUERST",
           "\\[b=\\frac{\\overline{xy}-\\bar{x}\\cdot\\bar{y}}{\\overline{x^2}-\\bar{x}^2}"+
           "=\\frac{"+ctx.fmt.n(k.xyb,2)+"-"+ctx.fmt.a(k.xb)+"\\cdot"+ctx.fmt.a(k.yb)+"}{"+ctx.fmt.n(k.x2b,3)+"-"+ctx.fmt.n(k.xbsq,4)+"}\\]"+
-          "\\[=\\frac{"+ctx.fmt.n(k.cov,3)+"}{"+ctx.fmt.n(k.varX,4)+"}\\approx "+ctx.fmt.n(k.b,3)+"\\]"+
+          "\\[=\\frac{"+ctx.fmt.n(k.cov,3)+"}{"+ctx.fmt.n(k.varX,4)+"}\\approx "+ctx.fmt.n(bD,3)+"\\]"+
           "<p>Der Zähler ist die Kovarianz, der Nenner die Varianz von x (Nenner n).</p>"));
       }
       else if(cur===3){
         body.appendChild(stepBox("④ Regressionskonstante a — DANACH",
-          "\\[a=\\bar{y}-b\\cdot\\bar{x}="+ctx.fmt.a(k.yb)+"-"+ctx.fmt.n(k.b,3)+"\\cdot"+ctx.fmt.a(k.xb)+"="+ctx.fmt.n(k.a,3)+"\\]"+
+          "\\[a=\\bar{y}-b\\cdot\\bar{x}="+ctx.fmt.a(k.yb)+"-"+ctx.fmt.n(bD,3)+"\\cdot"+ctx.fmt.a(k.xb)+"="+ctx.fmt.n(aD,3)+"\\]"+
           "<p>a braucht b — deshalb die feste Reihenfolge.</p>"));
       }
       else if(cur===4){
         body.appendChild(stepBox("⑤ Die fertige Regressionsgleichung",
-          "\\[\\hat{y}="+ctx.fmt.n(k.a,3)+"+"+ctx.fmt.n(k.b,3)+"\\cdot x\\]"+
-          "<p><b>b="+ctx.fmt.n(k.b,3)+":</b> +1 Promille ⇒ +"+ctx.fmt.n(k.b,3)+" ms.<br>"+
-          "<b>a="+ctx.fmt.n(k.a,3)+":</b> bei 0 Promille ≈ "+ctx.fmt.n(k.a,3)+" ms.</p>"));
+          "\\[\\hat{y}="+ctx.fmt.n(aD,3)+"+"+ctx.fmt.n(bD,3)+"\\cdot x\\]"+
+          "<p><b>b="+ctx.fmt.n(bD,3)+":</b> +1 Promille ⇒ +"+ctx.fmt.n(bD,3)+" ms.<br>"+
+          "<b>a="+ctx.fmt.n(aD,3)+":</b> bei 0 Promille ≈ "+ctx.fmt.n(aD,3)+" ms.</p>"));
         wrap.style.display="block"; drawScatter(true, null);
       }
       else if(cur===5){
-        const px=0.4, yh=f(px);
+        const px=0.4;
         body.appendChild(stepBox("⑥ Prognose: 0,4 Promille",
-          "\\[\\hat{y}="+ctx.fmt.n(k.a,3)+"+"+ctx.fmt.n(k.b,3)+"\\cdot0{,}4="+ctx.fmt.n(yh,3)+"\\text{ ms}\\]"+
-          "<p>Erwartete Reaktionszeit ≈ "+ctx.fmt.n(yh,3)+" ms. Wir „schätzen ab“, da nicht alle Punkte exakt auf der Geraden liegen.</p>"));
+          "\\[\\hat{y}="+ctx.fmt.n(aD,3)+"+"+ctx.fmt.n(bD,3)+"\\cdot0{,}4="+ctx.fmt.n(yhD,3)+"\\text{ ms}\\]"+
+          "<p>Erwartete Reaktionszeit ≈ "+ctx.fmt.n(yhD,3)+" ms. Wir „schätzen ab“, da nicht alle Punkte exakt auf der Geraden liegen.</p>"));
         wrap.style.display="block"; drawScatter(true, px);
       }
       else if(cur===6){
@@ -676,24 +684,24 @@
           "<p>Zwei neue Mittelwerte:</p>"+
           "\\[\\bar{y}^2="+ctx.fmt.a(k.yb)+"^2="+ctx.fmt.n(k.ybsq,2)+"\\qquad "+
           "\\overline{y^2}=\\tfrac{1}{10}\\cdot"+ctx.fmt.int(k.sumY2)+"="+ctx.fmt.n(k.y2b,1)+"\\]"+
-          "\\[r_{x,y}=\\frac{"+ctx.fmt.n(k.cov,3)+"}{\\sqrt{"+ctx.fmt.n(k.varX,4)+"\\cdot"+ctx.fmt.n(k.varY,2)+"}}\\approx "+ctx.fmt.n(k.r,3)+"\\]"+
-          "\\[R^2=r_{x,y}^2="+ctx.fmt.n(k.r,3)+"^2\\approx "+ctx.fmt.n(k.r2,3)+"\\]"));
+          "\\[r_{x,y}=\\frac{"+ctx.fmt.n(k.cov,3)+"}{\\sqrt{"+ctx.fmt.n(k.varX,4)+"\\cdot"+ctx.fmt.n(k.varY,2)+"}}\\approx "+ctx.fmt.n(rD,3)+"\\]"+
+          "\\[R^2=r_{x,y}^2="+ctx.fmt.n(rD,3)+"^2\\approx "+ctx.fmt.n(r2D,3)+"\\]"));
       }
       else if(cur===7){
-        body.appendChild(stepBox("⑧ Interpretation &amp; Fazit",
-          "<p><b>r ≈ "+ctx.fmt.n(k.r,3)+":</b> starker positiv-linearer Zusammenhang (|r| &gt; 0,5).</p>"+
-          "<p><b>R² ≈ "+ctx.fmt.n(k.r2,3)+":</b> "+ctx.fmt.pct(k.r2)+" der Streuung erklärt der Alkohol — "+
-          ctx.fmt.pct(1-k.r2)+" gehen auf andere Faktoren/Fehler.</p>"+
+        body.appendChild(stepBox("⑧ Interpretation & Fazit",
+          "<p><b>r ≈ "+ctx.fmt.n(rD,3)+":</b> starker positiv-linearer Zusammenhang (|r| &gt; 0,5).</p>"+
+          "<p><b>R² ≈ "+ctx.fmt.n(r2D,3)+":</b> 55,1 % der Streuung erklärt der Alkohol — "+
+          "44,9 % gehen auf andere Faktoren/Fehler.</p>"+
           "<p>R² &gt; 0,3 ⇒ die Gerade ist gut für Prognosen geeignet.</p>"+
           "<p class=\"muted\">Zum Vergleich nennt das Skript noch den Standardfehler 43,279 ms (relativ ≈ 6,6 %).</p>"));
         // kleine Stat-Reihe als Zusammenfassung
         const sumRow = ctx.el("div",{class:"readout"});
         function sc(v,l,cls){ return ctx.el("div",{class:"stat"+(cls?" "+cls:"")},
           ctx.el("div",{class:"v"},v), ctx.el("div",{class:"l"},l)); }
-        sumRow.appendChild(sc(ctx.fmt.n(k.b,3),"b","gold"));
-        sumRow.appendChild(sc(ctx.fmt.n(k.a,3),"a","teal"));
-        sumRow.appendChild(sc(ctx.fmt.n(k.r,3),"r","violet"));
-        sumRow.appendChild(sc(ctx.fmt.pct(k.r2),"R²","good"));
+        sumRow.appendChild(sc(ctx.fmt.n(bD,3),"b","gold"));
+        sumRow.appendChild(sc(ctx.fmt.n(aD,3),"a","teal"));
+        sumRow.appendChild(sc(ctx.fmt.n(rD,3),"r","violet"));
+        sumRow.appendChild(sc("55,1 %","R²","good"));
         body.appendChild(sumRow);
       }
 

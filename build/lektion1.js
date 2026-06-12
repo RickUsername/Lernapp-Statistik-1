@@ -4,7 +4,8 @@
    Leitbeispiel der Lektion ist DURCHGEHEND die fiktive Studie zu den
    "deutschen Krankenhäusern" (S.14 ff.). Der Pflegeroboter-/25-Patient:innen-
    Datensatz (Tabelle 1) gehört zu LEKTION 2 und wird hier NICHT als
-   Leitbeispiel geführt – höchstens als ausdrücklich gekennzeichneter Ausblick.
+   Leitbeispiel geführt – nur als ausdrücklich gekennzeichneter Ausblick:
+   Urliste-Notation + Urliste-Explorer in 1.3 (spec_lektion1.md, Widget C Teil 2).
    Alles in IIFE gewickelt – keine Top-Level-Deklarationen (Vertrag). */
 (function () {
   "use strict";
@@ -88,8 +89,8 @@
         renderScore();
       }
 
-      var bBauch = E("button", { class: "btn ghost", text: "Bauchgefühl reicht", onClick: function () { choose("bauch"); } });
-      var bDaten = E("button", { class: "btn ghost", text: "Daten nötig", onClick: function () { choose("daten"); } });
+      var bBauch = E("button", { class: "btn ghost", text: "Bauchgefühl reicht", onclick: function () { choose("bauch"); } });
+      var bDaten = E("button", { class: "btn ghost", text: "Daten nötig", onclick: function () { choose("daten"); } });
       row.appendChild(bBauch);
       row.appendChild(bDaten);
       box.appendChild(row);
@@ -135,6 +136,7 @@
     var wrap = E("div");
     var score = E("div", { class: "readout", style: { marginBottom: "12px" } });
     var assigned = {}; // index -> gewählte skala
+    var fbList = [];   // alle Feedback-Divs (für sauberes Zurücksetzen)
 
     function renderScore() {
       var done = Object.keys(assigned).length;
@@ -171,6 +173,7 @@
 
       var chipRow = E("div", { class: "chips" });
       var fb = E("div", { style: { marginTop: "8px", fontSize: ".9em", display: "none" } });
+      fbList.push(fb);
 
       ["nominal", "ordinal", "kardinal"].forEach(function (sk) {
         var chip = E("button", { class: "chip", text: labels[sk] });
@@ -200,17 +203,14 @@
     var resetRow = E("div", { class: "btn-row", style: { marginTop: "6px" } });
     resetRow.appendChild(E("button", {
       class: "btn ghost", text: "Zurücksetzen",
-      onClick: function () {
+      onclick: function () {
         assigned = {};
         Array.prototype.forEach.call(wrap.querySelectorAll(".chip"), function (c) { c.classList.remove("active"); });
         Array.prototype.forEach.call(wrap.children, function (b) {
           b.style.borderColor = "rgba(255,255,255,.12)";
           b.style.background = "rgba(255,255,255,.02)";
-          var f = b.querySelector("div:last-child");
         });
-        Array.prototype.forEach.call(wrap.querySelectorAll("div"), function (d) {
-          if (d.style && d.style.fontSize === "0.9em") d.style.display = "none";
-        });
+        fbList.forEach(function (f) { f.style.display = "none"; });
         renderScore();
       }
     }));
@@ -311,8 +311,12 @@
         var chipRow = E("div", { class: "chips" });
         var fb = E("div", { style: { marginTop: "8px", fontSize: ".9em", display: "none" } });
 
+        // Bereits gegebene Antwort dieses Modus wiederherstellen,
+        // damit Score-Anzeige und Chips/Feedback konsistent bleiben.
+        var prev = answered[key(current, i)];
+
         mode.opts.forEach(function (o) {
-          var chip = E("button", { class: "chip", text: o[1] });
+          var chip = E("button", { class: "chip" + (prev === o[0] ? " active" : ""), text: o[1] });
           chip.addEventListener("click", function () {
             answered[key(current, i)] = o[0];
             Array.prototype.forEach.call(chipRow.children, function (c) { c.classList.remove("active"); });
@@ -325,6 +329,14 @@
           });
           chipRow.appendChild(chip);
         });
+
+        if (prev !== undefined) {
+          var okPrev = prev === q.l;
+          fb.style.display = "block";
+          fb.style.color = okPrev ? "var(--good, #6bd3a0)" : "var(--bad, #e8836b)";
+          fb.innerHTML = (okPrev ? "✓ " : "✗ ") + q.w;
+        }
+
         box.appendChild(chipRow);
         box.appendChild(fb);
         listWrap.appendChild(box);
@@ -369,7 +381,7 @@
       {
         sk: "Schritt 2 · Datenaufbereitung",
         icon: "🧹",
-        html: "Die Rohbögen wandern in eine Statistiksoftware (<b>Excel, SPSS, R, Stata</b>). Dort prüfen wir auf <b>fehlende</b> und <b>fehlerhaft übertragene</b> Werte. Erst ein Krankenhaus hatte „300“ Intensivbetten getippt – ein Tippfehler, der korrigiert werden muss.",
+        html: "Die Rohbögen wandern in eine Statistiksoftware (<b>Excel, SPSS, R, Stata</b>). Dort prüfen wir auf <b>fehlende</b> und <b>fehlerhaft übertragene</b> Werte. Beispiel: Ein Krankenhaus hat versehentlich „300“ statt „30“ Intensivbetten eingetragen – solche Übertragungsfehler müssen gefunden und korrigiert werden.",
         detail: "Der langweiligste, aber entscheidende Schritt: „Garbage in, garbage out.“ Ohne saubere Daten ist jede spätere Auswertung wertlos."
       },
       {
@@ -405,17 +417,17 @@
       btnRow.innerHTML = "";
       btnRow.appendChild(E("button", {
         class: "btn ghost", text: "◀ zurück",
-        onClick: function () { if (pos > 0) { pos--; render(); } }
+        onclick: function () { if (pos > 0) { pos--; render(); } }
       }));
       if (pos < schritte.length - 1) {
         btnRow.appendChild(E("button", {
           class: "btn primary", text: "weiter ▶",
-          onClick: function () { pos++; render(); }
+          onclick: function () { pos++; render(); }
         }));
       } else {
         btnRow.appendChild(E("button", {
           class: "btn ghost", text: "↺ von vorn",
-          onClick: function () { pos = 0; render(); }
+          onclick: function () { pos = 0; render(); }
         }));
       }
       ctx.typeset();
@@ -502,6 +514,184 @@
     teil1.insertBefore(t1score, teil1.children[1]);
 
     el.appendChild(teil1);
+
+    /* ---------- Teil 2: Urliste-Explorer (Ausblick auf Lektion 2) ----------
+       Tabelle 1 (Pflegeroboter-Befragung, 25 Patient:innen) aus spec_lektion1.md.
+       Live: n je Spalte (NA-Behandlung: 25/24/25/19), Distinct-Werte,
+       automatisch erkanntes Skalenniveau, Häufigkeitstabelle. */
+    var NA = null;
+    var spalten = [
+      {
+        label: "Geschlecht", ordnung: null,
+        werte: ["weiblich", "weiblich", "weiblich", "weiblich", "männlich", "weiblich", "weiblich", "weiblich", "männlich", "männlich", "weiblich", "männlich", "weiblich", "weiblich", "weiblich", "weiblich", "weiblich", "weiblich", "männlich", "weiblich", "weiblich", "weiblich", "weiblich", "weiblich", "weiblich"]
+      },
+      {
+        label: "Zufriedenheit", ordnung: ["sehr gut", "gut", "befriedigend", "ausreichend", "mangelhaft"],
+        werte: ["gut", "gut", "gut", "gut", "befriedigend", "befriedigend", "befriedigend", "befriedigend", "gut", "befriedigend", "befriedigend", NA, "gut", "gut", "gut", "ausreichend", "gut", "gut", "sehr gut", "ausreichend", "gut", "befriedigend", "gut", "befriedigend", "befriedigend"]
+      },
+      {
+        label: "bisheriger Kontakt", ordnung: null,
+        werte: [1, 5, 0, 0, 1, 1, 2, 1, 1, 1, 1, 1, 2, 1, 0, 3, 1, 1, 0, 3, 0, 1, 1, 2, 1]
+      },
+      {
+        label: "Alter", ordnung: null,
+        werte: [16, NA, 50, 35, NA, 47, 15, 20, 47, 48, 44, NA, 55, 56, 35, 48, NA, 52, 49, NA, 68, 17, 26, 39, NA]
+      }
+    ];
+
+    function analysiere(sp) {
+      var gueltig = sp.werte.filter(function (v) { return v !== NA; });
+      var n = gueltig.length;
+      var fehlend = sp.werte.length - n;
+      var numerisch = gueltig.every(function (v) { return typeof v === "number"; });
+      var counts = {};
+      gueltig.forEach(function (v) { var k = String(v); counts[k] = (counts[k] || 0) + 1; });
+      var distinct = Object.keys(counts);
+      if (sp.ordnung) {
+        distinct.sort(function (a, b) { return sp.ordnung.indexOf(a) - sp.ordnung.indexOf(b); });
+      } else if (numerisch) {
+        distinct.sort(function (a, b) { return Number(a) - Number(b); });
+      }
+      var skala, zusatz, grund;
+      if (!numerisch) {
+        if (sp.ordnung) {
+          skala = "ordinal"; zusatz = "";
+          grund = "Kategorien MIT sinnvoller Reihenfolge („" + sp.ordnung[0] + "“ … „" + sp.ordnung[sp.ordnung.length - 1] + "“), aber die Abstände sind nicht interpretierbar → ordinal.";
+        } else {
+          skala = "nominal"; zusatz = distinct.length === 2 ? "dichotom" : "";
+          grund = "Kategorien ohne sinnvolle Reihenfolge → nominal" +
+            (distinct.length === 2 ? "; genau zwei Ausprägungen → dichotom." : ".");
+        }
+      } else {
+        skala = "kardinal";
+        if (distinct.length <= 10) {
+          zusatz = "diskret";
+          grund = "Zahlen mit interpretierbaren Abständen → kardinal; nur " + ctx.fmt.int(distinct.length) + " verschiedene Werte → wie ein diskretes Merkmal behandeln.";
+        } else {
+          zusatz = "wie stetig";
+          grund = "Zahlen mit interpretierbaren Abständen → kardinal; " + ctx.fmt.int(distinct.length) + " verschiedene Werte bei " + ctx.fmt.int(n) + " Angaben → wie ein stetiges Merkmal behandeln (in Lektion 2: Klassen bilden).";
+        }
+      }
+      return { n: n, fehlend: fehlend, counts: counts, distinct: distinct, numerisch: numerisch, skala: skala, zusatz: zusatz, grund: grund };
+    }
+
+    var teil2 = E("div");
+    teil2.appendChild(E("div", { class: "sub", text: "Teil 2 · Urliste-Explorer (Ausblick auf Lektion 2)", style: { fontWeight: "700", marginBottom: "4px" } }));
+    teil2.appendChild(E("div", {
+      style: { fontSize: ".9em", opacity: ".8", marginBottom: "10px" },
+      html: "Tabelle 1 aus dem Skript: <b>25 Patient:innen</b> wurden zu Pflegerobotern befragt. Wähle eine Spalte – das Widget zeigt live den Stichprobenumfang \\(n\\) (fehlende Angaben zählen nicht mit!), die Anzahl verschiedener Ausprägungen, das automatisch erkannte Skalenniveau und die Häufigkeitstabelle. Ausgewertet wird der Datensatz erst in Lektion 2."
+    }));
+
+    var colRow = E("div", { class: "chips", style: { marginBottom: "10px" } });
+    var t2read = E("div", { class: "readout", style: { marginBottom: "10px" } });
+    var t2grund = E("div", { class: "widget-hint", style: { marginBottom: "12px" } });
+    var freqWrap = E("div", { style: { marginBottom: "14px" } });
+    var tabWrap = E("div");
+    var selected = 0;
+
+    function renderTabelle1() {
+      tabWrap.innerHTML = "";
+      var tw = E("div", { class: "tbl-wrap" });
+      var tbl = E("table", { class: "data" });
+      var thead = E("thead");
+      var hr = E("tr");
+      hr.appendChild(E("th", { text: "Patient:in" }));
+      spalten.forEach(function (sp, si) {
+        hr.appendChild(E("th", { text: sp.label, style: si === selected ? { color: "var(--teal, #5fd0c5)" } : {} }));
+      });
+      thead.appendChild(hr);
+      tbl.appendChild(thead);
+      var tbody = E("tbody");
+      spalten[0].werte.forEach(function (_, p) {
+        var tr = E("tr");
+        tr.appendChild(E("td", { text: ctx.fmt.int(p + 1) }));
+        spalten.forEach(function (sp, si) {
+          var v = sp.werte[p];
+          var txt = v === NA ? "–" : (typeof v === "number" ? ctx.fmt.int(v) : String(v));
+          tr.appendChild(E("td", {
+            text: txt,
+            style: {
+              background: si === selected ? "rgba(95,208,197,.10)" : "transparent",
+              opacity: v === NA ? ".45" : "1"
+            }
+          }));
+        });
+        tbody.appendChild(tr);
+      });
+      tbl.appendChild(tbody);
+      tw.appendChild(tbl);
+      tabWrap.appendChild(tw);
+      tabWrap.appendChild(E("div", {
+        style: { fontSize: ".78em", opacity: ".6", marginTop: "4px" },
+        html: "Tabelle 1: Ergebnisse der Patientenbefragung („–“ = fehlende Angabe). Quelle: Heike Bornewasser-Hermes, 2022."
+      }));
+    }
+
+    function renderExplorer() {
+      var sp = spalten[selected];
+      var a = analysiere(sp);
+
+      Array.prototype.forEach.call(colRow.children, function (c, i) {
+        c.classList.toggle("active", i === selected);
+      });
+
+      t2read.innerHTML = "";
+      t2read.appendChild(E("div", { class: "stat teal" },
+        E("div", { class: "v" }, ctx.fmt.int(a.n)),
+        E("div", { class: "l" }, "n (gültige Werte)")));
+      t2read.appendChild(E("div", { class: "stat" },
+        E("div", { class: "v" }, ctx.fmt.int(a.fehlend)),
+        E("div", { class: "l" }, "fehlend (NA)")));
+      t2read.appendChild(E("div", { class: "stat violet" },
+        E("div", { class: "v" }, ctx.fmt.int(a.distinct.length)),
+        E("div", { class: "l" }, "verschiedene Ausprägungen")));
+      t2read.appendChild(E("div", { class: "stat blue" },
+        E("div", { class: "v" }, a.skala),
+        E("div", { class: "l" }, "Skalenniveau" + (a.zusatz ? " · " + a.zusatz : ""))));
+
+      t2grund.innerHTML = "<b>Warum?</b> " + a.grund +
+        " Von 25 Befragten liegen " + ctx.fmt.int(a.n) + " Antworten vor → Urliste \\(x_1, \\dots, x_{" + a.n + "}\\), also \\(n = " + a.n + "\\).";
+
+      freqWrap.innerHTML = "";
+      freqWrap.appendChild(E("div", { style: { fontWeight: "600", fontSize: ".92em", marginBottom: "6px" }, text: "Häufigkeitstabelle „" + sp.label + "“ (Ausblick auf Lektion 2)" }));
+      var tw = E("div", { class: "tbl-wrap" });
+      var tbl = E("table", { class: "data" });
+      var thead = E("thead");
+      var hr = E("tr");
+      hr.appendChild(E("th", { text: "Ausprägung" }));
+      hr.appendChild(E("th", { text: "absolute Häufigkeit" }));
+      thead.appendChild(hr);
+      tbl.appendChild(thead);
+      var tbody = E("tbody");
+      a.distinct.forEach(function (k) {
+        var tr = E("tr");
+        tr.appendChild(E("td", { text: a.numerisch ? ctx.fmt.int(Number(k)) : k }));
+        tr.appendChild(E("td", { text: ctx.fmt.int(a.counts[k]) + "×" }));
+        tbody.appendChild(tr);
+      });
+      tbl.appendChild(tbody);
+      tw.appendChild(tbl);
+      freqWrap.appendChild(tw);
+
+      renderTabelle1();
+      ctx.typeset();
+    }
+
+    spalten.forEach(function (sp, i) {
+      var chip = E("button", { class: "chip" + (i === 0 ? " active" : ""), text: sp.label });
+      chip.addEventListener("click", function () { selected = i; renderExplorer(); });
+      colRow.appendChild(chip);
+    });
+
+    teil2.appendChild(colRow);
+    teil2.appendChild(t2read);
+    teil2.appendChild(t2grund);
+    teil2.appendChild(freqWrap);
+    teil2.appendChild(tabWrap);
+
+    el.appendChild(E("div", { style: { borderTop: "1px solid rgba(255,255,255,.12)", margin: "18px 0" } }));
+    el.appendChild(teil2);
+    renderExplorer();
   }
 
   /* ============================================================
@@ -511,9 +701,21 @@
     id: 1,
     title: "Einführung",
 
-    // Lektion 1 ist eine rein konzeptionelle Lektion ohne eigene Rechenformeln.
-    // Die Urliste-/Rohdaten-Notation (x_1 … x_n) wird erst in Lektion 2 eingeführt,
-    // wo der konkrete Datensatz (Tabelle 1) ausgewertet wird.
+    // Lektion 1 ist konzeptionell ohne Rechenformeln. Die einzigen "Formeln"
+    // sind die Urlisten-Notation (Spec Abschnitt 5), hier als Ausblick auf
+    // Lektion 2 eingeführt (Abschnitt 1.3 + Urliste-Explorer).
+    formulas: [
+      {
+        group: "Lektion 1 · Notation", name: "Urliste / Rohdaten",
+        tex: "x_1, x_2, \\dots, x_n",
+        note: "Ausgangsdaten eines Merkmals; \\(n\\) = Stichprobenumfang (Ausblick Lektion 2)"
+      },
+      {
+        group: "Lektion 1 · Notation", name: "Merkmalswert der i-ten Person",
+        tex: "x_i,\\quad i = 1, \\dots, n",
+        note: "Personenindex \\(i\\) durchläuft alle \\(n\\) Merkmalsträger"
+      }
+    ],
 
     sections: [
 
@@ -692,13 +894,23 @@
             render: widgetAblauf
           },
 
+          { t: "divider" },
+
+          { t: "h", text: "Ausblick: Die Urliste – die erste Notation der Statistik", icon: "🔢" },
+          { t: "p", html: "Am Ende der Datensammlung steht für jedes Merkmal erst einmal eine schlichte, unsortierte Liste aller erhobenen Werte. Diese Liste hat einen eigenen Namen – und eine eigene Schreibweise, die dich ab Lektion 2 ständig begleitet. <i>(Das Skript führt die Urliste formal erst zu Beginn von Lektion 2 ein – hier kommt sie als ausdrücklich gekennzeichneter Vorgriff, damit die Notation beim ersten Rechnen schon sitzt.)</i>" },
+          { t: "def", term: "Urliste / Rohdaten", html: "Die Urliste bzw. Rohdaten beinhalten die <b>gesammelten Daten eines Merkmals</b> – unsortiert, in der Reihenfolge der Erhebung. Sie ist der Ausgangspunkt jeder Datenanalyse und liegt für <b>jedes beliebige Skalenniveau</b> vor." },
+          { t: "formula", tex: "x_1, x_2, \\dots, x_n", caption: "Die Urliste eines Merkmals. Kurzschreibweise: \\(x_i\\) für \\(i = 1, \\dots, n\\)." },
+          { t: "p", html: "Dabei ist \\(x_1\\) die Merkmalsausprägung der ersten Person, \\(x_2\\) die der zweiten und \\(x_n\\) die der letzten. \\(n\\) steht für die Gesamtanzahl an Personen, den <b>Stichprobenumfang</b>. Der <b>Personenindex</b> \\(i = 1, \\dots, n\\) durchläuft einmal alle Merkmalsträger." },
+          { t: "example", title: "Vier Urlisten, vier verschiedene n (Pflegeroboter-Befragung, Tabelle 1)", html: "In Lektion 2 startet ein konkreter Datensatz: <b>25 Patient:innen</b> wurden zu Pflegerobotern befragt. Jede der vier Merkmalsspalten ist eine eigene Urliste – mit eigenem \\(n\\):<br>• <b>Geschlecht:</b> alle 25 haben geantwortet → \\(n = 25\\)<br>• <b>Zufriedenheit:</b> eine Person hat die Bewertung ausgelassen → \\(n = 24\\)<br>• <b>Bisheriger Kontakt:</b> wieder alle → \\(n = 25\\)<br>• <b>Alter:</b> nur 19 wollten es verraten → \\(n = 19\\)" },
+          { t: "aha", title: "Aha: n zählt Antworten, nicht Fragebögen", html: "Obwohl 25 Fragebögen eingesammelt wurden, ist \\(n\\) <b>pro Merkmal</b> verschieden: Jede fehlende Angabe (NA) drückt das \\(n\\) genau dieser Spalte – deshalb 25 / 24 / 25 / 19. Und genau das ist ein Ergebnis von <b>Schritt 2 (Datenaufbereitung)</b>: fehlende Werte erst einmal finden, bevor man rechnet." },
+
           {
-            t: "widget", title: "Studien-Design-Navigator", icon: "🗂️",
-            hint: "Ordne jedes Szenario der Krankenhaus-Studie dem richtigen Design zu: Datenquelle (Primär/Sekundär), Zeitdesign (Querschnitt/Panel/Trend) und Analyse-Bereich (deskriptiv/inferenziell/explorativ).",
+            t: "widget", title: "Studien-Design-Navigator & Urliste-Explorer", icon: "🗂️",
+            hint: "Teil 1: Ordne jedes Szenario der Krankenhaus-Studie dem richtigen Design zu (Datenquelle, Zeitdesign, Analyse-Bereich). Teil 2 (Ausblick auf Lektion 2): Erkunde Tabelle 1 – wähle eine Spalte und sieh live n, Ausprägungen, Skalenniveau und Häufigkeitstabelle.",
             render: widgetDesign
           },
 
-          { t: "aha", title: "Ausblick: gleich kommen echte Zahlen", html: "Lektion 1 bleibt bewusst <b>begrifflich</b> – es wird hier noch nichts gerechnet. Den ersten <b>konkreten Zahlendatensatz</b> (eine Befragung von 25 Patient:innen mit den vier Merkmalen Geschlecht, Zufriedenheit, bisheriger Kontakt und Alter) lernst du <b>ausführlich in Lektion 2</b> kennen. Dort wird aus den Rohdaten eine <b>Urliste</b> \\(x_1, x_2, \\dots, x_n\\), und dann geht es ans Auswerten." }
+          { t: "aha", title: "Ausblick: gleich kommen echte Zahlen", html: "Lektion 1 bleibt bewusst <b>begrifflich</b> – gerechnet wird hier noch nichts. Den Datensatz der 25 Patient:innen (Geschlecht, Zufriedenheit, bisheriger Kontakt, Alter) hast du im Urliste-Explorer schon beschnuppert; <b>ausführlich ausgewertet</b> (Häufigkeiten, Grafiken, Mittelwerte) wird er erst <b>in Lektion 2</b>. Dort beginnt jede Analyse mit genau so einer <b>Urliste</b> \\(x_1, x_2, \\dots, x_n\\)." }
         ]
       }
     ],
@@ -800,6 +1012,23 @@
         options: ["Primärdaten", "Sekundärdaten", "Urliste", "Paneldaten"],
         correct: 0,
         explain: "Primärdaten erhebt man selbst (Befragung, Beobachtung, Experiment). Sekundärdaten greifen auf bereits vorhandene Daten zurück."
+      },
+      {
+        q: "Ausblick auf Tabelle 1 (Pflegeroboter-Befragung, 25 Patient:innen): Wie groß ist \\(n\\) für das Merkmal „Alter“?",
+        options: ["25", "24", "19", "16"],
+        correct: 2,
+        explain: "6 Patient:innen (Nr. 2, 5, 12, 17, 20, 25) haben keine Altersangabe gemacht → 25 − 6 = 19 gültige Werte. n zählt nur die tatsächlich vorliegenden Antworten – pro Merkmal!"
+      },
+      {
+        q: "Was bezeichnet in der Urliste \\(x_1, x_2, \\dots, x_n\\) das Symbol \\(n\\)?",
+        options: [
+          "die Anzahl der untersuchten Merkmale",
+          "den Stichprobenumfang (Anzahl der vorliegenden Antworten)",
+          "den größten gemessenen Wert",
+          "den Personenindex"
+        ],
+        correct: 1,
+        explain: "n ist die Gesamtanzahl an Personen bzw. der Stichprobenumfang. Der Personenindex ist \\(i = 1, \\dots, n\\); \\(x_i\\) ist der Merkmalswert der i-ten Person."
       }
     ]
   });

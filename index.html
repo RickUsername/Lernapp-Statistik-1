@@ -363,7 +363,7 @@ function el(tag, attrs, ...kids){
     else if(k==="html") n.innerHTML = v;
     else if(k==="text") n.textContent = v;
     else if(k==="style" && typeof v==="object") Object.assign(n.style, v);
-    else if(k.startsWith("on") && typeof v==="function") n.addEventListener(k.slice(2), v);
+    else if(k.startsWith("on") && typeof v==="function") n.addEventListener(k.slice(2).toLowerCase(), v);
     else if(v!==null && v!==undefined && v!==false) n.setAttribute(k, v);
   }
   for(let c of kids.flat()){
@@ -933,7 +933,15 @@ function viewDashboard(){
   mount(v); typeset(v);
 }
 
-function mount(node){ const m=$("#main"); m.innerHTML=""; m.appendChild(node); m.scrollTop=0; window.scrollTo(0,0); }
+function mount(node){
+  const m=$("#main"); m.innerHTML=""; m.appendChild(node);
+  // Sofort (ohne smooth-Animation) nach oben – sonst landet man beim
+  // Themenwechsel auf der Scroll-Position der vorherigen Seite.
+  const de=document.documentElement, prev=de.style.scrollBehavior;
+  de.style.scrollBehavior="auto";
+  m.scrollTop=0; window.scrollTo(0,0);
+  requestAnimationFrame(()=>{ window.scrollTo(0,0); de.style.scrollBehavior=prev; });
+}
 
 /* ============================ SIDEBAR ============================ */
 function buildSidebar(){
@@ -1013,6 +1021,7 @@ function closeMobile(){$("#sidebar").classList.remove("open");$("#scrim").classL
 
 /* ============================ ROUTER ============================ */
 function route(){
+  closeMobile(); // Mobile: Sidebar bei jedem Seitenwechsel schließen (auch via Start/Formeln/Dashboard-Karten)
   const h=location.hash||"#/";
   const m=h.match(/^#\/l\/(\d+)\/(\d+)/);
   if(m){const L=LESSONS.find(x=>x.id===+m[1]); if(L){viewSection(L,+m[2]);setActiveNav("section",L,+m[2]);return;}}
@@ -1046,7 +1055,8 @@ function initApp(){
    Leitbeispiel der Lektion ist DURCHGEHEND die fiktive Studie zu den
    "deutschen Krankenhäusern" (S.14 ff.). Der Pflegeroboter-/25-Patient:innen-
    Datensatz (Tabelle 1) gehört zu LEKTION 2 und wird hier NICHT als
-   Leitbeispiel geführt – höchstens als ausdrücklich gekennzeichneter Ausblick.
+   Leitbeispiel geführt – nur als ausdrücklich gekennzeichneter Ausblick:
+   Urliste-Notation + Urliste-Explorer in 1.3 (spec_lektion1.md, Widget C Teil 2).
    Alles in IIFE gewickelt – keine Top-Level-Deklarationen (Vertrag). */
 (function () {
   "use strict";
@@ -1130,8 +1140,8 @@ function initApp(){
         renderScore();
       }
 
-      var bBauch = E("button", { class: "btn ghost", text: "Bauchgefühl reicht", onClick: function () { choose("bauch"); } });
-      var bDaten = E("button", { class: "btn ghost", text: "Daten nötig", onClick: function () { choose("daten"); } });
+      var bBauch = E("button", { class: "btn ghost", text: "Bauchgefühl reicht", onclick: function () { choose("bauch"); } });
+      var bDaten = E("button", { class: "btn ghost", text: "Daten nötig", onclick: function () { choose("daten"); } });
       row.appendChild(bBauch);
       row.appendChild(bDaten);
       box.appendChild(row);
@@ -1177,6 +1187,7 @@ function initApp(){
     var wrap = E("div");
     var score = E("div", { class: "readout", style: { marginBottom: "12px" } });
     var assigned = {}; // index -> gewählte skala
+    var fbList = [];   // alle Feedback-Divs (für sauberes Zurücksetzen)
 
     function renderScore() {
       var done = Object.keys(assigned).length;
@@ -1213,6 +1224,7 @@ function initApp(){
 
       var chipRow = E("div", { class: "chips" });
       var fb = E("div", { style: { marginTop: "8px", fontSize: ".9em", display: "none" } });
+      fbList.push(fb);
 
       ["nominal", "ordinal", "kardinal"].forEach(function (sk) {
         var chip = E("button", { class: "chip", text: labels[sk] });
@@ -1242,17 +1254,14 @@ function initApp(){
     var resetRow = E("div", { class: "btn-row", style: { marginTop: "6px" } });
     resetRow.appendChild(E("button", {
       class: "btn ghost", text: "Zurücksetzen",
-      onClick: function () {
+      onclick: function () {
         assigned = {};
         Array.prototype.forEach.call(wrap.querySelectorAll(".chip"), function (c) { c.classList.remove("active"); });
         Array.prototype.forEach.call(wrap.children, function (b) {
           b.style.borderColor = "rgba(255,255,255,.12)";
           b.style.background = "rgba(255,255,255,.02)";
-          var f = b.querySelector("div:last-child");
         });
-        Array.prototype.forEach.call(wrap.querySelectorAll("div"), function (d) {
-          if (d.style && d.style.fontSize === "0.9em") d.style.display = "none";
-        });
+        fbList.forEach(function (f) { f.style.display = "none"; });
         renderScore();
       }
     }));
@@ -1353,8 +1362,12 @@ function initApp(){
         var chipRow = E("div", { class: "chips" });
         var fb = E("div", { style: { marginTop: "8px", fontSize: ".9em", display: "none" } });
 
+        // Bereits gegebene Antwort dieses Modus wiederherstellen,
+        // damit Score-Anzeige und Chips/Feedback konsistent bleiben.
+        var prev = answered[key(current, i)];
+
         mode.opts.forEach(function (o) {
-          var chip = E("button", { class: "chip", text: o[1] });
+          var chip = E("button", { class: "chip" + (prev === o[0] ? " active" : ""), text: o[1] });
           chip.addEventListener("click", function () {
             answered[key(current, i)] = o[0];
             Array.prototype.forEach.call(chipRow.children, function (c) { c.classList.remove("active"); });
@@ -1367,6 +1380,14 @@ function initApp(){
           });
           chipRow.appendChild(chip);
         });
+
+        if (prev !== undefined) {
+          var okPrev = prev === q.l;
+          fb.style.display = "block";
+          fb.style.color = okPrev ? "var(--good, #6bd3a0)" : "var(--bad, #e8836b)";
+          fb.innerHTML = (okPrev ? "✓ " : "✗ ") + q.w;
+        }
+
         box.appendChild(chipRow);
         box.appendChild(fb);
         listWrap.appendChild(box);
@@ -1411,7 +1432,7 @@ function initApp(){
       {
         sk: "Schritt 2 · Datenaufbereitung",
         icon: "🧹",
-        html: "Die Rohbögen wandern in eine Statistiksoftware (<b>Excel, SPSS, R, Stata</b>). Dort prüfen wir auf <b>fehlende</b> und <b>fehlerhaft übertragene</b> Werte. Erst ein Krankenhaus hatte „300“ Intensivbetten getippt – ein Tippfehler, der korrigiert werden muss.",
+        html: "Die Rohbögen wandern in eine Statistiksoftware (<b>Excel, SPSS, R, Stata</b>). Dort prüfen wir auf <b>fehlende</b> und <b>fehlerhaft übertragene</b> Werte. Beispiel: Ein Krankenhaus hat versehentlich „300“ statt „30“ Intensivbetten eingetragen – solche Übertragungsfehler müssen gefunden und korrigiert werden.",
         detail: "Der langweiligste, aber entscheidende Schritt: „Garbage in, garbage out.“ Ohne saubere Daten ist jede spätere Auswertung wertlos."
       },
       {
@@ -1447,17 +1468,17 @@ function initApp(){
       btnRow.innerHTML = "";
       btnRow.appendChild(E("button", {
         class: "btn ghost", text: "◀ zurück",
-        onClick: function () { if (pos > 0) { pos--; render(); } }
+        onclick: function () { if (pos > 0) { pos--; render(); } }
       }));
       if (pos < schritte.length - 1) {
         btnRow.appendChild(E("button", {
           class: "btn primary", text: "weiter ▶",
-          onClick: function () { pos++; render(); }
+          onclick: function () { pos++; render(); }
         }));
       } else {
         btnRow.appendChild(E("button", {
           class: "btn ghost", text: "↺ von vorn",
-          onClick: function () { pos = 0; render(); }
+          onclick: function () { pos = 0; render(); }
         }));
       }
       ctx.typeset();
@@ -1544,6 +1565,184 @@ function initApp(){
     teil1.insertBefore(t1score, teil1.children[1]);
 
     el.appendChild(teil1);
+
+    /* ---------- Teil 2: Urliste-Explorer (Ausblick auf Lektion 2) ----------
+       Tabelle 1 (Pflegeroboter-Befragung, 25 Patient:innen) aus spec_lektion1.md.
+       Live: n je Spalte (NA-Behandlung: 25/24/25/19), Distinct-Werte,
+       automatisch erkanntes Skalenniveau, Häufigkeitstabelle. */
+    var NA = null;
+    var spalten = [
+      {
+        label: "Geschlecht", ordnung: null,
+        werte: ["weiblich", "weiblich", "weiblich", "weiblich", "männlich", "weiblich", "weiblich", "weiblich", "männlich", "männlich", "weiblich", "männlich", "weiblich", "weiblich", "weiblich", "weiblich", "weiblich", "weiblich", "männlich", "weiblich", "weiblich", "weiblich", "weiblich", "weiblich", "weiblich"]
+      },
+      {
+        label: "Zufriedenheit", ordnung: ["sehr gut", "gut", "befriedigend", "ausreichend", "mangelhaft"],
+        werte: ["gut", "gut", "gut", "gut", "befriedigend", "befriedigend", "befriedigend", "befriedigend", "gut", "befriedigend", "befriedigend", NA, "gut", "gut", "gut", "ausreichend", "gut", "gut", "sehr gut", "ausreichend", "gut", "befriedigend", "gut", "befriedigend", "befriedigend"]
+      },
+      {
+        label: "bisheriger Kontakt", ordnung: null,
+        werte: [1, 5, 0, 0, 1, 1, 2, 1, 1, 1, 1, 1, 2, 1, 0, 3, 1, 1, 0, 3, 0, 1, 1, 2, 1]
+      },
+      {
+        label: "Alter", ordnung: null,
+        werte: [16, NA, 50, 35, NA, 47, 15, 20, 47, 48, 44, NA, 55, 56, 35, 48, NA, 52, 49, NA, 68, 17, 26, 39, NA]
+      }
+    ];
+
+    function analysiere(sp) {
+      var gueltig = sp.werte.filter(function (v) { return v !== NA; });
+      var n = gueltig.length;
+      var fehlend = sp.werte.length - n;
+      var numerisch = gueltig.every(function (v) { return typeof v === "number"; });
+      var counts = {};
+      gueltig.forEach(function (v) { var k = String(v); counts[k] = (counts[k] || 0) + 1; });
+      var distinct = Object.keys(counts);
+      if (sp.ordnung) {
+        distinct.sort(function (a, b) { return sp.ordnung.indexOf(a) - sp.ordnung.indexOf(b); });
+      } else if (numerisch) {
+        distinct.sort(function (a, b) { return Number(a) - Number(b); });
+      }
+      var skala, zusatz, grund;
+      if (!numerisch) {
+        if (sp.ordnung) {
+          skala = "ordinal"; zusatz = "";
+          grund = "Kategorien MIT sinnvoller Reihenfolge („" + sp.ordnung[0] + "“ … „" + sp.ordnung[sp.ordnung.length - 1] + "“), aber die Abstände sind nicht interpretierbar → ordinal.";
+        } else {
+          skala = "nominal"; zusatz = distinct.length === 2 ? "dichotom" : "";
+          grund = "Kategorien ohne sinnvolle Reihenfolge → nominal" +
+            (distinct.length === 2 ? "; genau zwei Ausprägungen → dichotom." : ".");
+        }
+      } else {
+        skala = "kardinal";
+        if (distinct.length <= 10) {
+          zusatz = "diskret";
+          grund = "Zahlen mit interpretierbaren Abständen → kardinal; nur " + ctx.fmt.int(distinct.length) + " verschiedene Werte → wie ein diskretes Merkmal behandeln.";
+        } else {
+          zusatz = "wie stetig";
+          grund = "Zahlen mit interpretierbaren Abständen → kardinal; " + ctx.fmt.int(distinct.length) + " verschiedene Werte bei " + ctx.fmt.int(n) + " Angaben → wie ein stetiges Merkmal behandeln (in Lektion 2: Klassen bilden).";
+        }
+      }
+      return { n: n, fehlend: fehlend, counts: counts, distinct: distinct, numerisch: numerisch, skala: skala, zusatz: zusatz, grund: grund };
+    }
+
+    var teil2 = E("div");
+    teil2.appendChild(E("div", { class: "sub", text: "Teil 2 · Urliste-Explorer (Ausblick auf Lektion 2)", style: { fontWeight: "700", marginBottom: "4px" } }));
+    teil2.appendChild(E("div", {
+      style: { fontSize: ".9em", opacity: ".8", marginBottom: "10px" },
+      html: "Tabelle 1 aus dem Skript: <b>25 Patient:innen</b> wurden zu Pflegerobotern befragt. Wähle eine Spalte – das Widget zeigt live den Stichprobenumfang \\(n\\) (fehlende Angaben zählen nicht mit!), die Anzahl verschiedener Ausprägungen, das automatisch erkannte Skalenniveau und die Häufigkeitstabelle. Ausgewertet wird der Datensatz erst in Lektion 2."
+    }));
+
+    var colRow = E("div", { class: "chips", style: { marginBottom: "10px" } });
+    var t2read = E("div", { class: "readout", style: { marginBottom: "10px" } });
+    var t2grund = E("div", { class: "widget-hint", style: { marginBottom: "12px" } });
+    var freqWrap = E("div", { style: { marginBottom: "14px" } });
+    var tabWrap = E("div");
+    var selected = 0;
+
+    function renderTabelle1() {
+      tabWrap.innerHTML = "";
+      var tw = E("div", { class: "tbl-wrap" });
+      var tbl = E("table", { class: "data" });
+      var thead = E("thead");
+      var hr = E("tr");
+      hr.appendChild(E("th", { text: "Patient:in" }));
+      spalten.forEach(function (sp, si) {
+        hr.appendChild(E("th", { text: sp.label, style: si === selected ? { color: "var(--teal, #5fd0c5)" } : {} }));
+      });
+      thead.appendChild(hr);
+      tbl.appendChild(thead);
+      var tbody = E("tbody");
+      spalten[0].werte.forEach(function (_, p) {
+        var tr = E("tr");
+        tr.appendChild(E("td", { text: ctx.fmt.int(p + 1) }));
+        spalten.forEach(function (sp, si) {
+          var v = sp.werte[p];
+          var txt = v === NA ? "–" : (typeof v === "number" ? ctx.fmt.int(v) : String(v));
+          tr.appendChild(E("td", {
+            text: txt,
+            style: {
+              background: si === selected ? "rgba(95,208,197,.10)" : "transparent",
+              opacity: v === NA ? ".45" : "1"
+            }
+          }));
+        });
+        tbody.appendChild(tr);
+      });
+      tbl.appendChild(tbody);
+      tw.appendChild(tbl);
+      tabWrap.appendChild(tw);
+      tabWrap.appendChild(E("div", {
+        style: { fontSize: ".78em", opacity: ".6", marginTop: "4px" },
+        html: "Tabelle 1: Ergebnisse der Patientenbefragung („–“ = fehlende Angabe). Quelle: Heike Bornewasser-Hermes, 2022."
+      }));
+    }
+
+    function renderExplorer() {
+      var sp = spalten[selected];
+      var a = analysiere(sp);
+
+      Array.prototype.forEach.call(colRow.children, function (c, i) {
+        c.classList.toggle("active", i === selected);
+      });
+
+      t2read.innerHTML = "";
+      t2read.appendChild(E("div", { class: "stat teal" },
+        E("div", { class: "v" }, ctx.fmt.int(a.n)),
+        E("div", { class: "l" }, "n (gültige Werte)")));
+      t2read.appendChild(E("div", { class: "stat" },
+        E("div", { class: "v" }, ctx.fmt.int(a.fehlend)),
+        E("div", { class: "l" }, "fehlend (NA)")));
+      t2read.appendChild(E("div", { class: "stat violet" },
+        E("div", { class: "v" }, ctx.fmt.int(a.distinct.length)),
+        E("div", { class: "l" }, "verschiedene Ausprägungen")));
+      t2read.appendChild(E("div", { class: "stat blue" },
+        E("div", { class: "v" }, a.skala),
+        E("div", { class: "l" }, "Skalenniveau" + (a.zusatz ? " · " + a.zusatz : ""))));
+
+      t2grund.innerHTML = "<b>Warum?</b> " + a.grund +
+        " Von 25 Befragten liegen " + ctx.fmt.int(a.n) + " Antworten vor → Urliste \\(x_1, \\dots, x_{" + a.n + "}\\), also \\(n = " + a.n + "\\).";
+
+      freqWrap.innerHTML = "";
+      freqWrap.appendChild(E("div", { style: { fontWeight: "600", fontSize: ".92em", marginBottom: "6px" }, text: "Häufigkeitstabelle „" + sp.label + "“ (Ausblick auf Lektion 2)" }));
+      var tw = E("div", { class: "tbl-wrap" });
+      var tbl = E("table", { class: "data" });
+      var thead = E("thead");
+      var hr = E("tr");
+      hr.appendChild(E("th", { text: "Ausprägung" }));
+      hr.appendChild(E("th", { text: "absolute Häufigkeit" }));
+      thead.appendChild(hr);
+      tbl.appendChild(thead);
+      var tbody = E("tbody");
+      a.distinct.forEach(function (k) {
+        var tr = E("tr");
+        tr.appendChild(E("td", { text: a.numerisch ? ctx.fmt.int(Number(k)) : k }));
+        tr.appendChild(E("td", { text: ctx.fmt.int(a.counts[k]) + "×" }));
+        tbody.appendChild(tr);
+      });
+      tbl.appendChild(tbody);
+      tw.appendChild(tbl);
+      freqWrap.appendChild(tw);
+
+      renderTabelle1();
+      ctx.typeset();
+    }
+
+    spalten.forEach(function (sp, i) {
+      var chip = E("button", { class: "chip" + (i === 0 ? " active" : ""), text: sp.label });
+      chip.addEventListener("click", function () { selected = i; renderExplorer(); });
+      colRow.appendChild(chip);
+    });
+
+    teil2.appendChild(colRow);
+    teil2.appendChild(t2read);
+    teil2.appendChild(t2grund);
+    teil2.appendChild(freqWrap);
+    teil2.appendChild(tabWrap);
+
+    el.appendChild(E("div", { style: { borderTop: "1px solid rgba(255,255,255,.12)", margin: "18px 0" } }));
+    el.appendChild(teil2);
+    renderExplorer();
   }
 
   /* ============================================================
@@ -1553,9 +1752,21 @@ function initApp(){
     id: 1,
     title: "Einführung",
 
-    // Lektion 1 ist eine rein konzeptionelle Lektion ohne eigene Rechenformeln.
-    // Die Urliste-/Rohdaten-Notation (x_1 … x_n) wird erst in Lektion 2 eingeführt,
-    // wo der konkrete Datensatz (Tabelle 1) ausgewertet wird.
+    // Lektion 1 ist konzeptionell ohne Rechenformeln. Die einzigen "Formeln"
+    // sind die Urlisten-Notation (Spec Abschnitt 5), hier als Ausblick auf
+    // Lektion 2 eingeführt (Abschnitt 1.3 + Urliste-Explorer).
+    formulas: [
+      {
+        group: "Lektion 1 · Notation", name: "Urliste / Rohdaten",
+        tex: "x_1, x_2, \\dots, x_n",
+        note: "Ausgangsdaten eines Merkmals; \\(n\\) = Stichprobenumfang (Ausblick Lektion 2)"
+      },
+      {
+        group: "Lektion 1 · Notation", name: "Merkmalswert der i-ten Person",
+        tex: "x_i,\\quad i = 1, \\dots, n",
+        note: "Personenindex \\(i\\) durchläuft alle \\(n\\) Merkmalsträger"
+      }
+    ],
 
     sections: [
 
@@ -1734,13 +1945,23 @@ function initApp(){
             render: widgetAblauf
           },
 
+          { t: "divider" },
+
+          { t: "h", text: "Ausblick: Die Urliste – die erste Notation der Statistik", icon: "🔢" },
+          { t: "p", html: "Am Ende der Datensammlung steht für jedes Merkmal erst einmal eine schlichte, unsortierte Liste aller erhobenen Werte. Diese Liste hat einen eigenen Namen – und eine eigene Schreibweise, die dich ab Lektion 2 ständig begleitet. <i>(Das Skript führt die Urliste formal erst zu Beginn von Lektion 2 ein – hier kommt sie als ausdrücklich gekennzeichneter Vorgriff, damit die Notation beim ersten Rechnen schon sitzt.)</i>" },
+          { t: "def", term: "Urliste / Rohdaten", html: "Die Urliste bzw. Rohdaten beinhalten die <b>gesammelten Daten eines Merkmals</b> – unsortiert, in der Reihenfolge der Erhebung. Sie ist der Ausgangspunkt jeder Datenanalyse und liegt für <b>jedes beliebige Skalenniveau</b> vor." },
+          { t: "formula", tex: "x_1, x_2, \\dots, x_n", caption: "Die Urliste eines Merkmals. Kurzschreibweise: \\(x_i\\) für \\(i = 1, \\dots, n\\)." },
+          { t: "p", html: "Dabei ist \\(x_1\\) die Merkmalsausprägung der ersten Person, \\(x_2\\) die der zweiten und \\(x_n\\) die der letzten. \\(n\\) steht für die Gesamtanzahl an Personen, den <b>Stichprobenumfang</b>. Der <b>Personenindex</b> \\(i = 1, \\dots, n\\) durchläuft einmal alle Merkmalsträger." },
+          { t: "example", title: "Vier Urlisten, vier verschiedene n (Pflegeroboter-Befragung, Tabelle 1)", html: "In Lektion 2 startet ein konkreter Datensatz: <b>25 Patient:innen</b> wurden zu Pflegerobotern befragt. Jede der vier Merkmalsspalten ist eine eigene Urliste – mit eigenem \\(n\\):<br>• <b>Geschlecht:</b> alle 25 haben geantwortet → \\(n = 25\\)<br>• <b>Zufriedenheit:</b> eine Person hat die Bewertung ausgelassen → \\(n = 24\\)<br>• <b>Bisheriger Kontakt:</b> wieder alle → \\(n = 25\\)<br>• <b>Alter:</b> nur 19 wollten es verraten → \\(n = 19\\)" },
+          { t: "aha", title: "Aha: n zählt Antworten, nicht Fragebögen", html: "Obwohl 25 Fragebögen eingesammelt wurden, ist \\(n\\) <b>pro Merkmal</b> verschieden: Jede fehlende Angabe (NA) drückt das \\(n\\) genau dieser Spalte – deshalb 25 / 24 / 25 / 19. Und genau das ist ein Ergebnis von <b>Schritt 2 (Datenaufbereitung)</b>: fehlende Werte erst einmal finden, bevor man rechnet." },
+
           {
-            t: "widget", title: "Studien-Design-Navigator", icon: "🗂️",
-            hint: "Ordne jedes Szenario der Krankenhaus-Studie dem richtigen Design zu: Datenquelle (Primär/Sekundär), Zeitdesign (Querschnitt/Panel/Trend) und Analyse-Bereich (deskriptiv/inferenziell/explorativ).",
+            t: "widget", title: "Studien-Design-Navigator & Urliste-Explorer", icon: "🗂️",
+            hint: "Teil 1: Ordne jedes Szenario der Krankenhaus-Studie dem richtigen Design zu (Datenquelle, Zeitdesign, Analyse-Bereich). Teil 2 (Ausblick auf Lektion 2): Erkunde Tabelle 1 – wähle eine Spalte und sieh live n, Ausprägungen, Skalenniveau und Häufigkeitstabelle.",
             render: widgetDesign
           },
 
-          { t: "aha", title: "Ausblick: gleich kommen echte Zahlen", html: "Lektion 1 bleibt bewusst <b>begrifflich</b> – es wird hier noch nichts gerechnet. Den ersten <b>konkreten Zahlendatensatz</b> (eine Befragung von 25 Patient:innen mit den vier Merkmalen Geschlecht, Zufriedenheit, bisheriger Kontakt und Alter) lernst du <b>ausführlich in Lektion 2</b> kennen. Dort wird aus den Rohdaten eine <b>Urliste</b> \\(x_1, x_2, \\dots, x_n\\), und dann geht es ans Auswerten." }
+          { t: "aha", title: "Ausblick: gleich kommen echte Zahlen", html: "Lektion 1 bleibt bewusst <b>begrifflich</b> – gerechnet wird hier noch nichts. Den Datensatz der 25 Patient:innen (Geschlecht, Zufriedenheit, bisheriger Kontakt, Alter) hast du im Urliste-Explorer schon beschnuppert; <b>ausführlich ausgewertet</b> (Häufigkeiten, Grafiken, Mittelwerte) wird er erst <b>in Lektion 2</b>. Dort beginnt jede Analyse mit genau so einer <b>Urliste</b> \\(x_1, x_2, \\dots, x_n\\)." }
         ]
       }
     ],
@@ -1842,6 +2063,23 @@ function initApp(){
         options: ["Primärdaten", "Sekundärdaten", "Urliste", "Paneldaten"],
         correct: 0,
         explain: "Primärdaten erhebt man selbst (Befragung, Beobachtung, Experiment). Sekundärdaten greifen auf bereits vorhandene Daten zurück."
+      },
+      {
+        q: "Ausblick auf Tabelle 1 (Pflegeroboter-Befragung, 25 Patient:innen): Wie groß ist \\(n\\) für das Merkmal „Alter“?",
+        options: ["25", "24", "19", "16"],
+        correct: 2,
+        explain: "6 Patient:innen (Nr. 2, 5, 12, 17, 20, 25) haben keine Altersangabe gemacht → 25 − 6 = 19 gültige Werte. n zählt nur die tatsächlich vorliegenden Antworten – pro Merkmal!"
+      },
+      {
+        q: "Was bezeichnet in der Urliste \\(x_1, x_2, \\dots, x_n\\) das Symbol \\(n\\)?",
+        options: [
+          "die Anzahl der untersuchten Merkmale",
+          "den Stichprobenumfang (Anzahl der vorliegenden Antworten)",
+          "den größten gemessenen Wert",
+          "den Personenindex"
+        ],
+        correct: 1,
+        explain: "n ist die Gesamtanzahl an Personen bzw. der Stichprobenumfang. Der Personenindex ist \\(i = 1, \\dots, n\\); \\(x_i\\) ist der Merkmalswert der i-ten Person."
       }
     ]
   });
@@ -1978,6 +2216,10 @@ function initApp(){
         tex:"s^2=\\frac{1}{n-1}\\sum_{i=1}^{n}(x_i-\\bar{x})^2=\\frac{n}{n-1}\\left(\\overline{x^2}-\\bar{x}^2\\right)", note:"Verschiebungsformel" },
       { group:"Lektion 2 · Streuungsmaße", name:"Mittel der Quadrate",
         tex:"\\overline{x^2}=\\frac{1}{n}\\sum_{i=1}^{n}x_i^2", note:"Hilfsgröße für s²" },
+      { group:"Lektion 2 · Streuungsmaße", name:"Mittel der Quadrate (diskrete Tabelle)",
+        tex:"\\overline{x^2}=\\sum_{j=1}^{k} a_j^2\\,f_j", note:"Ausprägungen quadrieren, dann gewichten" },
+      { group:"Lektion 2 · Streuungsmaße", name:"Mittel der Quadrate (stetige Tabelle)",
+        tex:"\\overline{x^2}=\\sum_{j=1}^{k} m_j^2\\,f_j", note:"Klassenmitten quadrieren, dann gewichten" },
       { group:"Lektion 2 · Streuungsmaße", name:"Standardabweichung",
         tex:"s=\\sqrt{s^2}", note:"durchschnittliche Abweichung vom Mittel" },
       { group:"Lektion 2 · Streuungsmaße", name:"Transformation der Streuung",
@@ -2248,6 +2490,8 @@ function initApp(){
             "Alter: \\(R=68-15=53\\)."
           ]},
 
+          {t:"warn", tag:"Stolperfalle", title:"Spannweite aus der klassierten Tabelle? Lieber nicht!", html:"Beim <b>diskreten</b> Merkmal (Kontakt) darf man \\(R\\) auch aus der Häufigkeitstabelle ablesen: Ausprägung der letzten Zeile minus Ausprägung der ersten Zeile. Beim <b>klassierten</b> Merkmal (Alter) rät das Skript davon ab: Die kleinste Klassenuntergrenze und die größte Klassenobergrenze müssen <b>nicht</b> den echten Extremwerten entsprechen. Aus den Klassen \\([15;30]\\) bis \\((50;70]\\) käme \\(R=70-15=55\\) – in Wahrheit ist aber niemand älter als 68, also \\(R=68-15=53\\)."},
+
           {t:"h", text:"Interquartilsabstand — der robuste Bruder", icon:"📦"},
           {t:"def", term:"Interquartilsabstand \\(IQR\\)", html:"Zeigt den Abstand der zentralen 50 % der Merkmalsträger (Fahrmeir et al., 2016, S.61). Robuster als die Spannweite, weil Extremwerte außerhalb der Quartile ignoriert werden."},
           {t:"formula", tex:"IQR=x_{0,75}-x_{0,25}", caption:"oberes minus unteres Quartil"},
@@ -2284,6 +2528,24 @@ function initApp(){
             "3) \\(s^2=\\tfrac{19}{18}\\,(1851-40{,}368^2)=233{,}690\\)<br>"+
             "4) \\(s=\\sqrt{233{,}690}=15{,}287\\)<br>"+
             "Lesart: „Das durchschnittliche Alter liegt bei \\(40{,}368\\pm15{,}287\\) Jahren.“"},
+
+          {t:"sub", text:"Varianz & Standardabweichung aus der Häufigkeitstabelle"},
+          {t:"p", html:"Liegt nur die Häufigkeitstabelle vor, ändert sich lediglich, <b>wie</b> die beiden Mittelwerte \\(\\bar x\\) und \\(\\overline{x^2}\\) berechnet werden – Verschiebungsformel und Wurzelziehen (Schritte 3 und 4) bleiben exakt gleich. Wichtig: Für \\(\\overline{x^2}\\) werden die <b>Ausprägungen bzw. Klassenmitten quadriert</b> – niemals die Häufigkeiten!"},
+          {t:"formula", tex:"\\overline{x^2}=\\sum_{j=1}^{k} a_j^2\\,f_j", caption:"Mittel der Quadrate aus der diskreten Häufigkeitstabelle (Ausprägungen quadrieren)"},
+          {t:"formula", tex:"\\overline{x^2}=\\sum_{j=1}^{k} m_j^2\\,f_j", caption:"… aus der stetigen Häufigkeitstabelle (Klassenmitten quadrieren)"},
+
+          {t:"example", title:"Kontakt aus der Häufigkeitstabelle (diskret, S.59–60)", html:
+            "\\(\\bar x=0\\cdot0{,}2+1\\cdot0{,}56+\\dots+5\\cdot0{,}04=1{,}24\\)<br>"+
+            "\\(\\overline{x^2}=0^2\\cdot0{,}2+1^2\\cdot0{,}56+\\dots+5^2\\cdot0{,}04=2{,}76\\)<br>"+
+            "Beide Werte sind <b>identisch</b> mit der Urliste – beim diskreten Merkmal geht durch die Tabelle nichts verloren. Ab hier wie gehabt: \\(s^2=\\tfrac{25}{24}(2{,}76-1{,}24^2)=1{,}273\\), \\(s=1{,}128\\)."},
+
+          {t:"example", title:"Alter aus der Häufigkeitstabelle (stetig, S.60–61)", html:
+            "Mit den Klassenmitten 22,5; 37,5; 47,5; 60 – für \\(\\overline{x^2}\\) jeweils quadriert:<br>"+
+            "1) \\(\\bar x=22{,}5\\cdot\\tfrac{5}{19}+\\dots+60\\cdot\\tfrac{4}{19}=41{,}447\\)<br>"+
+            "2) \\(\\overline{x^2}=22{,}5^2\\cdot\\tfrac{5}{19}+\\dots+60^2\\cdot\\tfrac{4}{19}=1899{,}671\\)<br>"+
+            "3) \\(s^2=\\tfrac{19}{18}\\,(1899{,}671-41{,}447^2)=191{,}918\\)<br>"+
+            "4) \\(s=\\sqrt{191{,}918}=13{,}85\\)<br>"+
+            "Das weicht deutlich von der Urliste ab (\\(s^2=233{,}690\\), \\(s=15{,}287\\)), weil die Klassenmitten die echten Werte nur schätzen → <b>Urliste bevorzugen</b>, wenn vorhanden."},
 
           {t:"sub", text:"Transformation der Streuung"},
           {t:"formula", tex:"y_i=a+x_i\\ \\Rightarrow\\ s_y^2=s_x^2,\\ s_y=s_x", caption:"Verschiebung um a: Abstände bleiben gleich → Streuung unverändert"},
@@ -2358,7 +2620,17 @@ function initApp(){
       { q:"Warum ist der Median <b>robuster</b> als der Mittelwert?",
         options:["er nutzt mehr Daten","er ignoriert Extremwerte und schaut nur auf die Mitte","er ist immer kleiner","er braucht keine Sortierung"],
         correct:1,
-        explain:"Eine 63-jährige Person zieht den Mittelwert hoch, am Median (der Mitte des sortierten Datensatzes) ändert sie nichts." }
+        explain:"Eine 63-jährige Person zieht den Mittelwert hoch, am Median (der Mitte des sortierten Datensatzes) ändert sie nichts." },
+
+      { q:"\\(\\overline{x^2}\\) soll aus der <b>stetigen</b> Häufigkeitstabelle berechnet werden. Was wird quadriert?",
+        options:["die relativen Häufigkeiten \\(f_j\\)","die Klassenmitten \\(m_j\\)","die Klassenbreiten \\(\\Delta_j\\)","die kumulierten Häufigkeiten \\(F_j\\)"],
+        correct:1,
+        explain:"\\(\\overline{x^2}=\\sum m_j^2\\,f_j\\) – die Klassenmitten werden quadriert und mit den relativen Häufigkeiten gewichtet. Beim Alter: \\(\\overline{x^2}=1899{,}671\\) → \\(s^2=191{,}918\\), \\(s=13{,}85\\) (statt 233,690 / 15,287 aus der Urliste)." },
+
+      { q:"Warum rät das Skript davon ab, die <b>Spannweite</b> des Alters aus der klassierten Häufigkeitstabelle zu bestimmen?",
+        options:["weil R nur für diskrete Merkmale definiert ist","weil die Klassengrenzen nicht den echten Extremwerten entsprechen müssen","weil man dafür erst die Dichte berechnen müsste","weil die Spannweite dort immer zu klein ausfällt"],
+        correct:1,
+        explain:"Aus den Klassen [15;30] … (50;70] käme R = 70 − 15 = 55, tatsächlich gilt R = 68 − 15 = 53: Die größte Klassenobergrenze (70) ist nicht der größte beobachtete Wert (68)." }
     ]
   });
 
@@ -2515,6 +2787,7 @@ function initApp(){
     var mode = "chart"; // chart type: 'bar' | 'pie'
     var chartType = "bar";
     var orderRef = null;
+    var chart = null;   // aktuelle Chart.js-Instanz (muss vor Neuanlage zerstört werden)
 
     var presets = {
       "Kontakt (Zahlen, n=25)": {text: KON.join(", "), order:null},
@@ -2523,6 +2796,8 @@ function initApp(){
 
     var input = ctx.el("input", {type:"text", value:presets["Kontakt (Zahlen, n=25)"].text,
       style:{width:"100%",boxSizing:"border-box"}});
+    // Live-Berechnung beim Tippen; manuelle Eingabe hebt die Preset-Sortierreihenfolge auf
+    input.addEventListener("input", function(){ orderRef = null; update(); });
 
     // Presets
     var pchips = ctx.el("div", {class:"chips"});
@@ -2641,7 +2916,8 @@ function initApp(){
               tooltip:{ callbacks:{ label:function(item){ return "fⱼ = "+ctx.fmt.n(item.parsed.y,3); }}}}}
         };
       }
-      ctx.makeChart(canvas, cfg);
+      if(chart){ chart.destroy(); }
+      chart = ctx.makeChart(canvas, cfg);
     }
 
     update();
@@ -2764,7 +3040,7 @@ function initApp(){
       // Beschriftung n_j auf den Balken
       classes.forEach(function(c){
         var h = (heightMode==="density") ? c.density : c.f;
-        P.text((c.lo+c.hi)/2, h, "n="+c.n, {align:"center", baseline:"bottom", color:"#333", px:false});
+        P.text((c.lo+c.hi)/2, h, "n="+c.n, {align:"center", baseline:"bottom", color:"#c3ccdc", px:false});
       });
 
       // Readout
@@ -2816,6 +3092,7 @@ function initApp(){
       "Kontakt (n=25)": KON.join(", ")
     };
     var input = ctx.el("input",{type:"text", value:presets["Alter (n=19)"], style:{width:"100%",boxSizing:"border-box"}});
+    input.addEventListener("input", update); // Live-Berechnung beim Tippen
 
     var pchips = ctx.el("div",{class:"chips"});
     Object.keys(presets).forEach(function(name){
@@ -2936,6 +3213,7 @@ function initApp(){
       "Alter (n=19)": AGE.join(", ")
     };
     var input = ctx.el("input",{type:"text", value:presets["Kontakt (n=25)"], style:{width:"100%",boxSizing:"border-box"}});
+    input.addEventListener("input", draw); // Live-Berechnung beim Tippen
     var pchips = ctx.el("div",{class:"chips"});
     Object.keys(presets).forEach(function(name){
       pchips.appendChild(ctx.el("span",{class:"chip", text:name, onclick:function(){ input.value=presets[name]; draw(); }}));
@@ -3054,6 +3332,7 @@ function initApp(){
       "Kontakt (n=25)": KON.join(", ")
     };
     var input = ctx.el("input",{type:"text", value:presets["Alter (n=19)"], style:{width:"100%",boxSizing:"border-box"}});
+    input.addEventListener("input", draw); // Live-Berechnung beim Tippen
     var pchips = ctx.el("div",{class:"chips"});
     Object.keys(presets).forEach(function(name){
       pchips.appendChild(ctx.el("span",{class:"chip", text:name, onclick:function(){ input.value=presets[name]; draw(); }}));
@@ -3565,18 +3844,29 @@ function initApp(){
     bNeg.addEventListener("click", ()=>{ pts = genCorr(-0.85); refresh(); });
     bCloud.addEventListener("click", ()=>{ pts = genCorr(0.0); refresh(); });
 
-    // erzeugt 12 Punkte mit ungefährer Zielkorrelation (deterministisch genug, ohne RNG-Seed)
+    // erzeugt 12 Punkte, deren Stichproben-r EXAKT dem Ziel entspricht:
+    // Rauschvektor per Gram-Schmidt von x befreien, dann y = r·x̂ + √(1−r²)·ê.
+    // Lineares Skalieren in den Y-Bereich ändert r nicht (kein clamp nötig).
     function genCorr(target){
-      const n=12, out=[];
+      const n=12, xs=[], es=[];
       for(let i=0;i<n;i++){
         const t = i/(n-1);                 // 0..1
-        const xx = XMIN+4 + t*(XMAX-XMIN-8);
-        const noise = (Math.sin(i*12.9898)*43758.5453); // pseudo-random in (-..)
-        const jitter = ((noise - Math.floor(noise)) - 0.5) * (YMAX-YMIN) * (1-Math.abs(target)) * 0.9;
-        const lin = YMIN+4 + (target>=0 ? t : (1-t)) * (YMAX-YMIN-8);
-        out.push([ xx, ctx.clamp(lin + jitter, YMIN, YMAX) ]);
+        xs.push(XMIN+4 + t*(XMAX-XMIN-8));
+        const noise = (Math.sin(i*12.9898)*43758.5453); // deterministisch, ohne RNG-Seed
+        es.push(noise - Math.floor(noise));
       }
-      return out;
+      const mean = a => a.reduce((s,v)=>s+v,0)/a.length;
+      const dot  = (a,b) => a.reduce((s,v,i)=>s+v*b[i],0);
+      const mx = mean(xs), me = mean(es);
+      const cx = xs.map(v=>v-mx);
+      let   ce = es.map(v=>v-me);
+      const proj = dot(ce,cx)/dot(cx,cx);
+      ce = ce.map((v,i)=>v-proj*cx[i]);    // Rauschen ⊥ x
+      const nx = Math.sqrt(dot(cx,cx)), ne = Math.sqrt(dot(ce,ce));
+      const zs = cx.map((v,i)=> target*v/nx + Math.sqrt(1-target*target)*ce[i]/ne);
+      const zmax = Math.max(...zs.map(Math.abs)) || 1;
+      const ymid = (YMIN+YMAX)/2, amp = (YMAX-YMIN)/2 - 2;
+      return xs.map((x,i)=>[ x, ymid + zs[i]/zmax*amp ]);
     }
 
     P.onResize = draw;
@@ -3627,10 +3917,10 @@ function initApp(){
     // feste, anschauliche Datensätze
     const dPlus1 = [[1,2],[2,4],[3,6],[4,8],[5,10],[6,12]];            // r=+1
     const dNeg1  = [[10,100],[20,80],[30,60],[40,40],[50,20],[60,0]]; // r=−1 (Abb. 13, page_096)
-    const dPos03 = [[1,3],[2,2],[3,5],[4,3],[5,6],[6,4],[7,7],[8,5]];  // ~+0,3
+    const dPos03 = [[1,5],[2,6],[3,3],[4,2],[5,4],[6,2],[7,8],[8,7]];  // r=+0,30
     const dPos065= ELTERN_X.slice(0,12).map((x,i)=>[x,ELTERN_Y[i]]);  // Eltern, r≈0,65
-    const dNeg05 = [[1,9],[2,7],[3,8],[4,5],[5,6],[6,3],[7,4],[8,2]];  // ~−0,5
-    const dCloud = [[1,5],[2,2],[3,7],[4,4],[5,1],[6,6],[7,3],[8,5],[2,6],[6,2]]; // ~0
+    const dNeg05 = [[1,8],[2,8],[3,2],[4,3],[5,6],[6,2],[7,3],[8,5]];  // r=−0,50
+    const dCloud = [[1,7],[2,2],[3,5],[4,5],[5,5],[6,5],[7,9],[8,3],[3,4],[7,3]]; // r=0,00
     const dQuad  = [];                                                 // r≈0 aber Parabel!
     for(let i=-5;i<=5;i++) dQuad.push([i, i*i]);
 
@@ -4355,7 +4645,7 @@ function initApp(){
           {t:"quote", source:"Bornewasser-Hermes, BSTA01-02, S. 100",
             html:"Anders als bei der Korrelation gehen wir aber jetzt konkret davon aus, dass die Variable x die Variable y beeinflusst und in keinem Fall andersherum."},
 
-          {t:"h", text:"Das Leitbeispiel: Alkohol &amp; Reaktionszeit", icon:"🍷"},
+          {t:"h", text:"Das Leitbeispiel: Alkohol & Reaktionszeit", icon:"🍷"},
           {t:"p", html:"Auf einer Party wird bei 10 Gästen die <b>Alkoholkonzentration</b> (Promille) gemessen, anschließend ein <b>Reaktionstest</b> am Laptop (in Millisekunden). Person 1 ist nüchtern (0 Promille) und reagiert in 590 ms; Person 7 hat 1,4 Promille und braucht schon 687 ms."},
           {t:"table",
             caption:"Tabelle 30 — Ausgangsdaten für die einfache lineare Regression (n = 10)",
@@ -4470,7 +4760,7 @@ function initApp(){
       /* ============================================================ 4.3 ==== */
       {
         num:"4.3",
-        title:"Qualitätsbeurteilung (Korrelationskoeffizient &amp; Bestimmtheitsmaß R²)",
+        title:"Qualitätsbeurteilung (Korrelationskoeffizient & Bestimmtheitsmaß R²)",
         intro:"Die KQM findet für <b>jede</b> Punktwolke eine Gerade — auch für völligen Unsinn. Deshalb müssen wir prüfen, ob die Gerade überhaupt etwas taugt.",
         blocks:[
           {t:"p", lead:true, html:"Die Methode der kleinsten Quadrate ist gnadenlos hilfsbereit: Sie spuckt selbst dann eine Gerade aus, wenn die Punkte aussehen wie ein Spritzer Tomatensoße. Eine Gerade <i>haben</i> heißt also nicht, eine <i>gute</i> Gerade haben."},
@@ -4711,7 +5001,7 @@ function initApp(){
     el.appendChild(eqn);
 
     el.appendChild(ctx.el("p",{class:"widget-hint"},
-      "Tipp: In den Plot klicken setzt einen neuen Punkt. Mit dem Skript-Beispiel müssen b ≈ 53,84 · a ≈ 596,50 · r ≈ 0,742 · R² ≈ 0,551 erscheinen."));
+      "Tipp: In den Plot klicken setzt einen neuen Punkt. Mit dem Skript-Beispiel müssen b ≈ 53,84 · a ≈ 596,5 · r ≈ 0,742 · R² ≈ 55,0 % erscheinen."));
 
     const P = ctx.Plot(wrap, {xmin:0,xmax:1,ymin:0,ymax:1, height:360, grid:true});
     ctx.onCleanup(()=>P.destroy());
@@ -4826,8 +5116,16 @@ function initApp(){
    *  WIDGET 3 — Alkohol-Reaktionszeit-Demo (Steps, 4.3)
    * ======================================================================== */
   function renderStepsDemo(el, ctx){
-    const k = kennzahlen(ALK.x, ALK.y);     // exakte Werte
+    const k = kennzahlen(ALK.x, ALK.y);     // exakte Werte (für die Grafik)
     const f = xv => k.a + k.b*xv;
+    /* ANZEIGE-Werte: Rundungskette wie im Skript (jeder Zwischenschritt auf
+       3 Dezimalen gerundet), damit jede gezeigte Zahl exakt dem Skript,
+       dem Lektionstext und dem Quiz entspricht. */
+    const bD  = Math.round(k.b*1000)/1000;                 // 53,844
+    const aD  = Math.round((k.yb - bD*k.xb)*1000)/1000;    // 596,503
+    const yhD = Math.round((aD + bD*0.4)*1000)/1000;       // 618,041
+    const rD  = Math.round(k.r*1000)/1000;                 // 0,742
+    const r2D = Math.round(rD*rD*1000)/1000;               // 0,551
 
     let cur = 0;
     const TOTAL = 8;
@@ -4912,26 +5210,26 @@ function initApp(){
         body.appendChild(stepBox("③ Regressionskoeffizient b — ZUERST",
           "\\[b=\\frac{\\overline{xy}-\\bar{x}\\cdot\\bar{y}}{\\overline{x^2}-\\bar{x}^2}"+
           "=\\frac{"+ctx.fmt.n(k.xyb,2)+"-"+ctx.fmt.a(k.xb)+"\\cdot"+ctx.fmt.a(k.yb)+"}{"+ctx.fmt.n(k.x2b,3)+"-"+ctx.fmt.n(k.xbsq,4)+"}\\]"+
-          "\\[=\\frac{"+ctx.fmt.n(k.cov,3)+"}{"+ctx.fmt.n(k.varX,4)+"}\\approx "+ctx.fmt.n(k.b,3)+"\\]"+
+          "\\[=\\frac{"+ctx.fmt.n(k.cov,3)+"}{"+ctx.fmt.n(k.varX,4)+"}\\approx "+ctx.fmt.n(bD,3)+"\\]"+
           "<p>Der Zähler ist die Kovarianz, der Nenner die Varianz von x (Nenner n).</p>"));
       }
       else if(cur===3){
         body.appendChild(stepBox("④ Regressionskonstante a — DANACH",
-          "\\[a=\\bar{y}-b\\cdot\\bar{x}="+ctx.fmt.a(k.yb)+"-"+ctx.fmt.n(k.b,3)+"\\cdot"+ctx.fmt.a(k.xb)+"="+ctx.fmt.n(k.a,3)+"\\]"+
+          "\\[a=\\bar{y}-b\\cdot\\bar{x}="+ctx.fmt.a(k.yb)+"-"+ctx.fmt.n(bD,3)+"\\cdot"+ctx.fmt.a(k.xb)+"="+ctx.fmt.n(aD,3)+"\\]"+
           "<p>a braucht b — deshalb die feste Reihenfolge.</p>"));
       }
       else if(cur===4){
         body.appendChild(stepBox("⑤ Die fertige Regressionsgleichung",
-          "\\[\\hat{y}="+ctx.fmt.n(k.a,3)+"+"+ctx.fmt.n(k.b,3)+"\\cdot x\\]"+
-          "<p><b>b="+ctx.fmt.n(k.b,3)+":</b> +1 Promille ⇒ +"+ctx.fmt.n(k.b,3)+" ms.<br>"+
-          "<b>a="+ctx.fmt.n(k.a,3)+":</b> bei 0 Promille ≈ "+ctx.fmt.n(k.a,3)+" ms.</p>"));
+          "\\[\\hat{y}="+ctx.fmt.n(aD,3)+"+"+ctx.fmt.n(bD,3)+"\\cdot x\\]"+
+          "<p><b>b="+ctx.fmt.n(bD,3)+":</b> +1 Promille ⇒ +"+ctx.fmt.n(bD,3)+" ms.<br>"+
+          "<b>a="+ctx.fmt.n(aD,3)+":</b> bei 0 Promille ≈ "+ctx.fmt.n(aD,3)+" ms.</p>"));
         wrap.style.display="block"; drawScatter(true, null);
       }
       else if(cur===5){
-        const px=0.4, yh=f(px);
+        const px=0.4;
         body.appendChild(stepBox("⑥ Prognose: 0,4 Promille",
-          "\\[\\hat{y}="+ctx.fmt.n(k.a,3)+"+"+ctx.fmt.n(k.b,3)+"\\cdot0{,}4="+ctx.fmt.n(yh,3)+"\\text{ ms}\\]"+
-          "<p>Erwartete Reaktionszeit ≈ "+ctx.fmt.n(yh,3)+" ms. Wir „schätzen ab“, da nicht alle Punkte exakt auf der Geraden liegen.</p>"));
+          "\\[\\hat{y}="+ctx.fmt.n(aD,3)+"+"+ctx.fmt.n(bD,3)+"\\cdot0{,}4="+ctx.fmt.n(yhD,3)+"\\text{ ms}\\]"+
+          "<p>Erwartete Reaktionszeit ≈ "+ctx.fmt.n(yhD,3)+" ms. Wir „schätzen ab“, da nicht alle Punkte exakt auf der Geraden liegen.</p>"));
         wrap.style.display="block"; drawScatter(true, px);
       }
       else if(cur===6){
@@ -4939,24 +5237,24 @@ function initApp(){
           "<p>Zwei neue Mittelwerte:</p>"+
           "\\[\\bar{y}^2="+ctx.fmt.a(k.yb)+"^2="+ctx.fmt.n(k.ybsq,2)+"\\qquad "+
           "\\overline{y^2}=\\tfrac{1}{10}\\cdot"+ctx.fmt.int(k.sumY2)+"="+ctx.fmt.n(k.y2b,1)+"\\]"+
-          "\\[r_{x,y}=\\frac{"+ctx.fmt.n(k.cov,3)+"}{\\sqrt{"+ctx.fmt.n(k.varX,4)+"\\cdot"+ctx.fmt.n(k.varY,2)+"}}\\approx "+ctx.fmt.n(k.r,3)+"\\]"+
-          "\\[R^2=r_{x,y}^2="+ctx.fmt.n(k.r,3)+"^2\\approx "+ctx.fmt.n(k.r2,3)+"\\]"));
+          "\\[r_{x,y}=\\frac{"+ctx.fmt.n(k.cov,3)+"}{\\sqrt{"+ctx.fmt.n(k.varX,4)+"\\cdot"+ctx.fmt.n(k.varY,2)+"}}\\approx "+ctx.fmt.n(rD,3)+"\\]"+
+          "\\[R^2=r_{x,y}^2="+ctx.fmt.n(rD,3)+"^2\\approx "+ctx.fmt.n(r2D,3)+"\\]"));
       }
       else if(cur===7){
-        body.appendChild(stepBox("⑧ Interpretation &amp; Fazit",
-          "<p><b>r ≈ "+ctx.fmt.n(k.r,3)+":</b> starker positiv-linearer Zusammenhang (|r| &gt; 0,5).</p>"+
-          "<p><b>R² ≈ "+ctx.fmt.n(k.r2,3)+":</b> "+ctx.fmt.pct(k.r2)+" der Streuung erklärt der Alkohol — "+
-          ctx.fmt.pct(1-k.r2)+" gehen auf andere Faktoren/Fehler.</p>"+
+        body.appendChild(stepBox("⑧ Interpretation & Fazit",
+          "<p><b>r ≈ "+ctx.fmt.n(rD,3)+":</b> starker positiv-linearer Zusammenhang (|r| &gt; 0,5).</p>"+
+          "<p><b>R² ≈ "+ctx.fmt.n(r2D,3)+":</b> 55,1 % der Streuung erklärt der Alkohol — "+
+          "44,9 % gehen auf andere Faktoren/Fehler.</p>"+
           "<p>R² &gt; 0,3 ⇒ die Gerade ist gut für Prognosen geeignet.</p>"+
           "<p class=\"muted\">Zum Vergleich nennt das Skript noch den Standardfehler 43,279 ms (relativ ≈ 6,6 %).</p>"));
         // kleine Stat-Reihe als Zusammenfassung
         const sumRow = ctx.el("div",{class:"readout"});
         function sc(v,l,cls){ return ctx.el("div",{class:"stat"+(cls?" "+cls:"")},
           ctx.el("div",{class:"v"},v), ctx.el("div",{class:"l"},l)); }
-        sumRow.appendChild(sc(ctx.fmt.n(k.b,3),"b","gold"));
-        sumRow.appendChild(sc(ctx.fmt.n(k.a,3),"a","teal"));
-        sumRow.appendChild(sc(ctx.fmt.n(k.r,3),"r","violet"));
-        sumRow.appendChild(sc(ctx.fmt.pct(k.r2),"R²","good"));
+        sumRow.appendChild(sc(ctx.fmt.n(bD,3),"b","gold"));
+        sumRow.appendChild(sc(ctx.fmt.n(aD,3),"a","teal"));
+        sumRow.appendChild(sc(ctx.fmt.n(rD,3),"r","violet"));
+        sumRow.appendChild(sc("55,1 %","R²","good"));
         body.appendChild(sumRow);
       }
 
@@ -5001,7 +5299,7 @@ function initApp(){
       A:      { label:"A = {1,2,4}", set:[1,2,4] },
       B:      { label:"B = {3,4,5}", set:[3,4,5] },
       C:      { label:"C = {5,6}",   set:[5,6] },
-      hoch:   { label:"Mind. 5 {5,6}", set:[5,6] }
+      hoch:   { label:"Mind. 4 {4,5,6}", set:[4,5,6] }
     };
     let curKey = "gerade";
 
@@ -5254,12 +5552,21 @@ function initApp(){
       ctx2.textBaseline="top"; ctx2.textAlign="left";
       ctx2.fillText("Ω", x0+6, y0+4);
 
-      // Kreis-Geometrie: bei Disjunkt auseinander, sonst überlappend
+      // Kreis-Geometrie: bei Disjunkt auseinander, sonst überlappend.
+      // Radius an Breite UND Höhe koppeln (Canvas-Höhe ist fix 300px, Breite variiert),
+      // damit die Kreise immer in den Ω-Kasten passen.
       const cy = P.Y(3);
-      const r  = (P.X(3)-P.X(0));
+      const rMaxH = (P.Y(0.3)-P.Y(5.7))/2.4; // Kastenhöhe in px, mit Rand-Reserve
+      let r = Math.min(P.X(2)-P.X(0), rMaxH);
       let cxA, cxB;
-      if(v.disjoint){ cxA=P.X(2.6); cxB=P.X(7.4); }
-      else { cxA=P.X(3.7); cxB=P.X(6.3); }
+      if(v.disjoint){
+        cxA=P.X(2.6); cxB=P.X(7.4);
+        r = Math.min(r, (cxB-cxA)/2 - 6); // sichtbar getrennt: kein Überlappen mehr
+      } else {
+        // Zentren an r koppeln (Abstand 1,1·r) → Überlappung auf jeder Bildbreite garantiert
+        const mid = (P.X(0.3)+P.X(9.7))/2;
+        cxA = mid - r*0.55; cxB = mid + r*0.55;
+      }
 
       function disc(cx,cy,r,fill){
         ctx2.beginPath(); ctx2.arc(cx,cy,r,0,Math.PI*2);
@@ -5339,7 +5646,10 @@ function initApp(){
     const presets = {
       test:    { label:"Medizinischer Test", pK:0.01, pPosK:0.99, pPosNK:0.05,
                  names:{K:"krank", nK:"gesund", pos:"Test +", neg:"Test −"} },
-      klausur: { label:"Klausuren (Statistik|Mathe)", pK:0.6, pPosK:0.8, pPosNK:0.3,
+      // Klausur-Preset konsistent zu den Skript-Daten der Lektion (P(Stat)=0,8; P(Mathe)=0,7; P(beide)=0,5):
+      // P(Mathe)=0,7 · P(Stat|Mathe)=0,5/0,7≈0,714 · P(Stat|Mathe̅)=0,3/0,3=1
+      // → totale Wkt P(Stat)=0,8 und Bayes P(Mathe|Stat)=0,5/0,8=0,625
+      klausur: { label:"Klausuren (Statistik|Mathe)", pK:0.7, pPosK:0.5/0.7, pPosNK:1,
                  names:{K:"Mathe best.", nK:"Mathe nicht", pos:"Stat. best.", neg:"Stat. nicht"} }
     };
     let cur = "test";

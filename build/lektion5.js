@@ -26,7 +26,7 @@
       A:      { label:"A = {1,2,4}", set:[1,2,4] },
       B:      { label:"B = {3,4,5}", set:[3,4,5] },
       C:      { label:"C = {5,6}",   set:[5,6] },
-      hoch:   { label:"Mind. 5 {5,6}", set:[5,6] }
+      hoch:   { label:"Mind. 4 {4,5,6}", set:[4,5,6] }
     };
     let curKey = "gerade";
 
@@ -279,12 +279,21 @@
       ctx2.textBaseline="top"; ctx2.textAlign="left";
       ctx2.fillText("Ω", x0+6, y0+4);
 
-      // Kreis-Geometrie: bei Disjunkt auseinander, sonst überlappend
+      // Kreis-Geometrie: bei Disjunkt auseinander, sonst überlappend.
+      // Radius an Breite UND Höhe koppeln (Canvas-Höhe ist fix 300px, Breite variiert),
+      // damit die Kreise immer in den Ω-Kasten passen.
       const cy = P.Y(3);
-      const r  = (P.X(3)-P.X(0));
+      const rMaxH = (P.Y(0.3)-P.Y(5.7))/2.4; // Kastenhöhe in px, mit Rand-Reserve
+      let r = Math.min(P.X(2)-P.X(0), rMaxH);
       let cxA, cxB;
-      if(v.disjoint){ cxA=P.X(2.6); cxB=P.X(7.4); }
-      else { cxA=P.X(3.7); cxB=P.X(6.3); }
+      if(v.disjoint){
+        cxA=P.X(2.6); cxB=P.X(7.4);
+        r = Math.min(r, (cxB-cxA)/2 - 6); // sichtbar getrennt: kein Überlappen mehr
+      } else {
+        // Zentren an r koppeln (Abstand 1,1·r) → Überlappung auf jeder Bildbreite garantiert
+        const mid = (P.X(0.3)+P.X(9.7))/2;
+        cxA = mid - r*0.55; cxB = mid + r*0.55;
+      }
 
       function disc(cx,cy,r,fill){
         ctx2.beginPath(); ctx2.arc(cx,cy,r,0,Math.PI*2);
@@ -364,7 +373,10 @@
     const presets = {
       test:    { label:"Medizinischer Test", pK:0.01, pPosK:0.99, pPosNK:0.05,
                  names:{K:"krank", nK:"gesund", pos:"Test +", neg:"Test −"} },
-      klausur: { label:"Klausuren (Statistik|Mathe)", pK:0.6, pPosK:0.8, pPosNK:0.3,
+      // Klausur-Preset konsistent zu den Skript-Daten der Lektion (P(Stat)=0,8; P(Mathe)=0,7; P(beide)=0,5):
+      // P(Mathe)=0,7 · P(Stat|Mathe)=0,5/0,7≈0,714 · P(Stat|Mathe̅)=0,3/0,3=1
+      // → totale Wkt P(Stat)=0,8 und Bayes P(Mathe|Stat)=0,5/0,8=0,625
+      klausur: { label:"Klausuren (Statistik|Mathe)", pK:0.7, pPosK:0.5/0.7, pPosNK:1,
                  names:{K:"Mathe best.", nK:"Mathe nicht", pos:"Stat. best.", neg:"Stat. nicht"} }
     };
     let cur = "test";

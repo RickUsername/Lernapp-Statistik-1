@@ -126,6 +126,10 @@
         tex:"s^2=\\frac{1}{n-1}\\sum_{i=1}^{n}(x_i-\\bar{x})^2=\\frac{n}{n-1}\\left(\\overline{x^2}-\\bar{x}^2\\right)", note:"Verschiebungsformel" },
       { group:"Lektion 2 · Streuungsmaße", name:"Mittel der Quadrate",
         tex:"\\overline{x^2}=\\frac{1}{n}\\sum_{i=1}^{n}x_i^2", note:"Hilfsgröße für s²" },
+      { group:"Lektion 2 · Streuungsmaße", name:"Mittel der Quadrate (diskrete Tabelle)",
+        tex:"\\overline{x^2}=\\sum_{j=1}^{k} a_j^2\\,f_j", note:"Ausprägungen quadrieren, dann gewichten" },
+      { group:"Lektion 2 · Streuungsmaße", name:"Mittel der Quadrate (stetige Tabelle)",
+        tex:"\\overline{x^2}=\\sum_{j=1}^{k} m_j^2\\,f_j", note:"Klassenmitten quadrieren, dann gewichten" },
       { group:"Lektion 2 · Streuungsmaße", name:"Standardabweichung",
         tex:"s=\\sqrt{s^2}", note:"durchschnittliche Abweichung vom Mittel" },
       { group:"Lektion 2 · Streuungsmaße", name:"Transformation der Streuung",
@@ -396,6 +400,8 @@
             "Alter: \\(R=68-15=53\\)."
           ]},
 
+          {t:"warn", tag:"Stolperfalle", title:"Spannweite aus der klassierten Tabelle? Lieber nicht!", html:"Beim <b>diskreten</b> Merkmal (Kontakt) darf man \\(R\\) auch aus der Häufigkeitstabelle ablesen: Ausprägung der letzten Zeile minus Ausprägung der ersten Zeile. Beim <b>klassierten</b> Merkmal (Alter) rät das Skript davon ab: Die kleinste Klassenuntergrenze und die größte Klassenobergrenze müssen <b>nicht</b> den echten Extremwerten entsprechen. Aus den Klassen \\([15;30]\\) bis \\((50;70]\\) käme \\(R=70-15=55\\) – in Wahrheit ist aber niemand älter als 68, also \\(R=68-15=53\\)."},
+
           {t:"h", text:"Interquartilsabstand — der robuste Bruder", icon:"📦"},
           {t:"def", term:"Interquartilsabstand \\(IQR\\)", html:"Zeigt den Abstand der zentralen 50 % der Merkmalsträger (Fahrmeir et al., 2016, S.61). Robuster als die Spannweite, weil Extremwerte außerhalb der Quartile ignoriert werden."},
           {t:"formula", tex:"IQR=x_{0,75}-x_{0,25}", caption:"oberes minus unteres Quartil"},
@@ -432,6 +438,24 @@
             "3) \\(s^2=\\tfrac{19}{18}\\,(1851-40{,}368^2)=233{,}690\\)<br>"+
             "4) \\(s=\\sqrt{233{,}690}=15{,}287\\)<br>"+
             "Lesart: „Das durchschnittliche Alter liegt bei \\(40{,}368\\pm15{,}287\\) Jahren.“"},
+
+          {t:"sub", text:"Varianz & Standardabweichung aus der Häufigkeitstabelle"},
+          {t:"p", html:"Liegt nur die Häufigkeitstabelle vor, ändert sich lediglich, <b>wie</b> die beiden Mittelwerte \\(\\bar x\\) und \\(\\overline{x^2}\\) berechnet werden – Verschiebungsformel und Wurzelziehen (Schritte 3 und 4) bleiben exakt gleich. Wichtig: Für \\(\\overline{x^2}\\) werden die <b>Ausprägungen bzw. Klassenmitten quadriert</b> – niemals die Häufigkeiten!"},
+          {t:"formula", tex:"\\overline{x^2}=\\sum_{j=1}^{k} a_j^2\\,f_j", caption:"Mittel der Quadrate aus der diskreten Häufigkeitstabelle (Ausprägungen quadrieren)"},
+          {t:"formula", tex:"\\overline{x^2}=\\sum_{j=1}^{k} m_j^2\\,f_j", caption:"… aus der stetigen Häufigkeitstabelle (Klassenmitten quadrieren)"},
+
+          {t:"example", title:"Kontakt aus der Häufigkeitstabelle (diskret, S.59–60)", html:
+            "\\(\\bar x=0\\cdot0{,}2+1\\cdot0{,}56+\\dots+5\\cdot0{,}04=1{,}24\\)<br>"+
+            "\\(\\overline{x^2}=0^2\\cdot0{,}2+1^2\\cdot0{,}56+\\dots+5^2\\cdot0{,}04=2{,}76\\)<br>"+
+            "Beide Werte sind <b>identisch</b> mit der Urliste – beim diskreten Merkmal geht durch die Tabelle nichts verloren. Ab hier wie gehabt: \\(s^2=\\tfrac{25}{24}(2{,}76-1{,}24^2)=1{,}273\\), \\(s=1{,}128\\)."},
+
+          {t:"example", title:"Alter aus der Häufigkeitstabelle (stetig, S.60–61)", html:
+            "Mit den Klassenmitten 22,5; 37,5; 47,5; 60 – für \\(\\overline{x^2}\\) jeweils quadriert:<br>"+
+            "1) \\(\\bar x=22{,}5\\cdot\\tfrac{5}{19}+\\dots+60\\cdot\\tfrac{4}{19}=41{,}447\\)<br>"+
+            "2) \\(\\overline{x^2}=22{,}5^2\\cdot\\tfrac{5}{19}+\\dots+60^2\\cdot\\tfrac{4}{19}=1899{,}671\\)<br>"+
+            "3) \\(s^2=\\tfrac{19}{18}\\,(1899{,}671-41{,}447^2)=191{,}918\\)<br>"+
+            "4) \\(s=\\sqrt{191{,}918}=13{,}85\\)<br>"+
+            "Das weicht deutlich von der Urliste ab (\\(s^2=233{,}690\\), \\(s=15{,}287\\)), weil die Klassenmitten die echten Werte nur schätzen → <b>Urliste bevorzugen</b>, wenn vorhanden."},
 
           {t:"sub", text:"Transformation der Streuung"},
           {t:"formula", tex:"y_i=a+x_i\\ \\Rightarrow\\ s_y^2=s_x^2,\\ s_y=s_x", caption:"Verschiebung um a: Abstände bleiben gleich → Streuung unverändert"},
@@ -506,7 +530,17 @@
       { q:"Warum ist der Median <b>robuster</b> als der Mittelwert?",
         options:["er nutzt mehr Daten","er ignoriert Extremwerte und schaut nur auf die Mitte","er ist immer kleiner","er braucht keine Sortierung"],
         correct:1,
-        explain:"Eine 63-jährige Person zieht den Mittelwert hoch, am Median (der Mitte des sortierten Datensatzes) ändert sie nichts." }
+        explain:"Eine 63-jährige Person zieht den Mittelwert hoch, am Median (der Mitte des sortierten Datensatzes) ändert sie nichts." },
+
+      { q:"\\(\\overline{x^2}\\) soll aus der <b>stetigen</b> Häufigkeitstabelle berechnet werden. Was wird quadriert?",
+        options:["die relativen Häufigkeiten \\(f_j\\)","die Klassenmitten \\(m_j\\)","die Klassenbreiten \\(\\Delta_j\\)","die kumulierten Häufigkeiten \\(F_j\\)"],
+        correct:1,
+        explain:"\\(\\overline{x^2}=\\sum m_j^2\\,f_j\\) – die Klassenmitten werden quadriert und mit den relativen Häufigkeiten gewichtet. Beim Alter: \\(\\overline{x^2}=1899{,}671\\) → \\(s^2=191{,}918\\), \\(s=13{,}85\\) (statt 233,690 / 15,287 aus der Urliste)." },
+
+      { q:"Warum rät das Skript davon ab, die <b>Spannweite</b> des Alters aus der klassierten Häufigkeitstabelle zu bestimmen?",
+        options:["weil R nur für diskrete Merkmale definiert ist","weil die Klassengrenzen nicht den echten Extremwerten entsprechen müssen","weil man dafür erst die Dichte berechnen müsste","weil die Spannweite dort immer zu klein ausfällt"],
+        correct:1,
+        explain:"Aus den Klassen [15;30] … (50;70] käme R = 70 − 15 = 55, tatsächlich gilt R = 68 − 15 = 53: Die größte Klassenobergrenze (70) ist nicht der größte beobachtete Wert (68)." }
     ]
   });
 
@@ -663,6 +697,7 @@
     var mode = "chart"; // chart type: 'bar' | 'pie'
     var chartType = "bar";
     var orderRef = null;
+    var chart = null;   // aktuelle Chart.js-Instanz (muss vor Neuanlage zerstört werden)
 
     var presets = {
       "Kontakt (Zahlen, n=25)": {text: KON.join(", "), order:null},
@@ -671,6 +706,8 @@
 
     var input = ctx.el("input", {type:"text", value:presets["Kontakt (Zahlen, n=25)"].text,
       style:{width:"100%",boxSizing:"border-box"}});
+    // Live-Berechnung beim Tippen; manuelle Eingabe hebt die Preset-Sortierreihenfolge auf
+    input.addEventListener("input", function(){ orderRef = null; update(); });
 
     // Presets
     var pchips = ctx.el("div", {class:"chips"});
@@ -789,7 +826,8 @@
               tooltip:{ callbacks:{ label:function(item){ return "fⱼ = "+ctx.fmt.n(item.parsed.y,3); }}}}}
         };
       }
-      ctx.makeChart(canvas, cfg);
+      if(chart){ chart.destroy(); }
+      chart = ctx.makeChart(canvas, cfg);
     }
 
     update();
@@ -912,7 +950,7 @@
       // Beschriftung n_j auf den Balken
       classes.forEach(function(c){
         var h = (heightMode==="density") ? c.density : c.f;
-        P.text((c.lo+c.hi)/2, h, "n="+c.n, {align:"center", baseline:"bottom", color:"#333", px:false});
+        P.text((c.lo+c.hi)/2, h, "n="+c.n, {align:"center", baseline:"bottom", color:"#c3ccdc", px:false});
       });
 
       // Readout
@@ -964,6 +1002,7 @@
       "Kontakt (n=25)": KON.join(", ")
     };
     var input = ctx.el("input",{type:"text", value:presets["Alter (n=19)"], style:{width:"100%",boxSizing:"border-box"}});
+    input.addEventListener("input", update); // Live-Berechnung beim Tippen
 
     var pchips = ctx.el("div",{class:"chips"});
     Object.keys(presets).forEach(function(name){
@@ -1084,6 +1123,7 @@
       "Alter (n=19)": AGE.join(", ")
     };
     var input = ctx.el("input",{type:"text", value:presets["Kontakt (n=25)"], style:{width:"100%",boxSizing:"border-box"}});
+    input.addEventListener("input", draw); // Live-Berechnung beim Tippen
     var pchips = ctx.el("div",{class:"chips"});
     Object.keys(presets).forEach(function(name){
       pchips.appendChild(ctx.el("span",{class:"chip", text:name, onclick:function(){ input.value=presets[name]; draw(); }}));
@@ -1202,6 +1242,7 @@
       "Kontakt (n=25)": KON.join(", ")
     };
     var input = ctx.el("input",{type:"text", value:presets["Alter (n=19)"], style:{width:"100%",boxSizing:"border-box"}});
+    input.addEventListener("input", draw); // Live-Berechnung beim Tippen
     var pchips = ctx.el("div",{class:"chips"});
     Object.keys(presets).forEach(function(name){
       pchips.appendChild(ctx.el("span",{class:"chip", text:name, onclick:function(){ input.value=presets[name]; draw(); }}));

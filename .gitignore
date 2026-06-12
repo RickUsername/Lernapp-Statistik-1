@@ -10,6 +10,10 @@ node_modules/
 shots/
 shot*.mjs
 *.output
+_*.mjs
+livecheck.mjs
+CLAUDE_CODE_PROMPT.md
+Promt für Lernapp (alt).txt
 
 # OS
 Thumbs.db

@@ -375,18 +375,29 @@
     bNeg.addEventListener("click", ()=>{ pts = genCorr(-0.85); refresh(); });
     bCloud.addEventListener("click", ()=>{ pts = genCorr(0.0); refresh(); });
 
-    // erzeugt 12 Punkte mit ungefährer Zielkorrelation (deterministisch genug, ohne RNG-Seed)
+    // erzeugt 12 Punkte, deren Stichproben-r EXAKT dem Ziel entspricht:
+    // Rauschvektor per Gram-Schmidt von x befreien, dann y = r·x̂ + √(1−r²)·ê.
+    // Lineares Skalieren in den Y-Bereich ändert r nicht (kein clamp nötig).
     function genCorr(target){
-      const n=12, out=[];
+      const n=12, xs=[], es=[];
       for(let i=0;i<n;i++){
         const t = i/(n-1);                 // 0..1
-        const xx = XMIN+4 + t*(XMAX-XMIN-8);
-        const noise = (Math.sin(i*12.9898)*43758.5453); // pseudo-random in (-..)
-        const jitter = ((noise - Math.floor(noise)) - 0.5) * (YMAX-YMIN) * (1-Math.abs(target)) * 0.9;
-        const lin = YMIN+4 + (target>=0 ? t : (1-t)) * (YMAX-YMIN-8);
-        out.push([ xx, ctx.clamp(lin + jitter, YMIN, YMAX) ]);
+        xs.push(XMIN+4 + t*(XMAX-XMIN-8));
+        const noise = (Math.sin(i*12.9898)*43758.5453); // deterministisch, ohne RNG-Seed
+        es.push(noise - Math.floor(noise));
       }
-      return out;
+      const mean = a => a.reduce((s,v)=>s+v,0)/a.length;
+      const dot  = (a,b) => a.reduce((s,v,i)=>s+v*b[i],0);
+      const mx = mean(xs), me = mean(es);
+      const cx = xs.map(v=>v-mx);
+      let   ce = es.map(v=>v-me);
+      const proj = dot(ce,cx)/dot(cx,cx);
+      ce = ce.map((v,i)=>v-proj*cx[i]);    // Rauschen ⊥ x
+      const nx = Math.sqrt(dot(cx,cx)), ne = Math.sqrt(dot(ce,ce));
+      const zs = cx.map((v,i)=> target*v/nx + Math.sqrt(1-target*target)*ce[i]/ne);
+      const zmax = Math.max(...zs.map(Math.abs)) || 1;
+      const ymid = (YMIN+YMAX)/2, amp = (YMAX-YMIN)/2 - 2;
+      return xs.map((x,i)=>[ x, ymid + zs[i]/zmax*amp ]);
     }
 
     P.onResize = draw;
@@ -437,10 +448,10 @@
     // feste, anschauliche Datensätze
     const dPlus1 = [[1,2],[2,4],[3,6],[4,8],[5,10],[6,12]];            // r=+1
     const dNeg1  = [[10,100],[20,80],[30,60],[40,40],[50,20],[60,0]]; // r=−1 (Abb. 13, page_096)
-    const dPos03 = [[1,3],[2,2],[3,5],[4,3],[5,6],[6,4],[7,7],[8,5]];  // ~+0,3
+    const dPos03 = [[1,5],[2,6],[3,3],[4,2],[5,4],[6,2],[7,8],[8,7]];  // r=+0,30
     const dPos065= ELTERN_X.slice(0,12).map((x,i)=>[x,ELTERN_Y[i]]);  // Eltern, r≈0,65
-    const dNeg05 = [[1,9],[2,7],[3,8],[4,5],[5,6],[6,3],[7,4],[8,2]];  // ~−0,5
-    const dCloud = [[1,5],[2,2],[3,7],[4,4],[5,1],[6,6],[7,3],[8,5],[2,6],[6,2]]; // ~0
+    const dNeg05 = [[1,8],[2,8],[3,2],[4,3],[5,6],[6,2],[7,3],[8,5]];  // r=−0,50
+    const dCloud = [[1,7],[2,2],[3,5],[4,5],[5,5],[6,5],[7,9],[8,3],[3,4],[7,3]]; // r=0,00
     const dQuad  = [];                                                 // r≈0 aber Parabel!
     for(let i=-5;i<=5;i++) dQuad.push([i, i*i]);
 
