@@ -572,7 +572,7 @@
               ["6", "0,0162", "0,9965"],
               ["7", "0,0031", "0,9996"],
               ["8", "0,00039", "≈ 1,0000"],
-              ["9", "0,0000295", "≈ 1,0000"],
+              ["9", "0,0000286", "≈ 1,0000"],
               ["10", "0,00000095", "1,0000"]
             ] },
 
@@ -686,7 +686,7 @@
           { t: "sub", text: "Quantile – die Umkehraufgabe" },
           { t: "p", html: "Bisher: Wert \\(x\\) bekannt → Wahrscheinlichkeit gesucht. Jetzt umgekehrt: <b>Wahrscheinlichkeit bekannt → Wert gesucht.</b> Man fragt etwa: „Welche Fahrtzeit wird an 95 % der Tage nicht überschritten?\" Die Antwort ist ein <b>Quantil</b>." },
           { t: "formula", tex: "x_p=\\mu+z_p\\cdot\\sigma\\qquad\\text{mit}\\qquad z_p=-\\,z_{\\,1-p}\\;\\;\\text{für }p<0{,}5", caption: "Quantil-Formel (Umkehrung der Standardisierung)" },
-          { t: "table", caption: "Tabelle 33 – wichtige Quantile der Standardnormalverteilung (Quelle: Bornewasser-Hermes, 2023)", compact: true,
+          { t: "table", caption: "Tabelle 33 – wichtige Quantile der Standardnormalverteilung (Quelle: Bornewasser-Hermes, 2023). Hinweis: Das Skript druckt bei p = 0,995 den Wert 2,5788 — ein Druckfehler; korrekt (und hier verwendet) ist 2,5758.", compact: true,
             headers: ["p", "0,9", "0,95", "0,975", "0,99", "0,995"],
             rows: [["zₚ", "1,2816", "1,6449", "1,96", "2,3263", "2,5758"]] },
           { t: "example", title: "Quantil-Aufgaben durchgerechnet", html:

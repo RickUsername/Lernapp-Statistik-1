@@ -3,7 +3,7 @@
  * Leitbeispiel: Reaktionszeit unter Alkoholeinfluss (Tabelle 30).
  * Verifiziert: b≈53,844 · a≈596,503 · r≈0,742 · R²≈0,551 · ŷ(0,4)≈618,04.
  * Methodik: Verschiebungssatz mit Nenner n (Populationsvarianz). Die Quotienten
- * b und r sind nenner-unabhängig, daher liefert ctx.Stats.regression/pearson
+ * b und r sind nenner-unabhängig, daher liefert die lokale Funktion kennzahlen()
  * exakt die Skriptzahlen.
  * ========================================================================== */
 (function(){
@@ -255,8 +255,8 @@
           {t:"p", html:"Klingt aufwendig — ist aber geschenkt. Der einfachste Rechenweg ist <b>einfach r quadrieren</b>:"},
           {t:"formula", tex:"R^2 = r_{x,y}^2",
             caption:"Der bequemste Weg zu R²."},
-          {t:"quote", source:"Bornewasser-Hermes, BSTA01-02, S. 112",
-            html:"Das Einzige, was wir machen müssen, ist, das Ergebnis des Korrelationskoeffizienten zu quadrieren."},
+          {t:"quote", source:"Bornewasser-Hermes, BSTA01-02, S. 113",
+            html:"Das Einzige, was wir demnach machen müssen, ist, das Ergebnis des Korrelationskoeffizienten von Bravais-Pearson zu quadrieren."},
 
           {t:"example", title:"R² im Leitbeispiel (S. 113)",
             html:
@@ -284,7 +284,7 @@
           {t:"formula", tex:"\\hat{\\sigma}_0 = \\frac{\\hat{\\sigma}_{x,y}}{\\bar{y}} = \\frac{43{,}279}{659{,}5} = 0{,}066 \\;(=6{,}6\\,\\%)",
             caption:"Relativer Standardfehler — durchschnittliche prozentuale Abweichung. Je näher an 0 %, desto besser."},
 
-          {t:"sub", text:"Die drei Kriterien gehen Hand in Hand (S. 114)"},
+          {t:"sub", text:"Die drei Kriterien gehen Hand in Hand (S. 115)"},
           {t:"p", html:"Hohe Korrelation → hohes R² → niedriger Standardfehler. Und umgekehrt: niedrige Korrelation → niedriges R² → großer Fehler. Sie erzählen alle dieselbe Geschichte aus verschiedenen Blickwinkeln."},
 
           {t:"quote", source:"Bornewasser-Hermes, BSTA01-02, S. 115 (Zusammenfassung)",

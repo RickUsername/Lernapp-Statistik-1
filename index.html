@@ -408,6 +408,7 @@ const Stats = (function(){
     const s = sortAsc(a), n = s.length, pos = n*p;
     if(Math.abs(pos-Math.round(pos))<1e-9){
       const k = Math.round(pos);                // 1-based
+      if(k<=0) return s[0];
       if(k>=n) return s[n-1];
       return (s[k-1]+s[k])/2;
     }
@@ -436,7 +437,8 @@ const Stats = (function(){
       const avg=(i+j)/2+1; for(let k=i;k<=j;k++) r[idx[k][1]]=avg; i=j+1; }
     return r;
   }
-  function covariance(x,y){const n=x.length,mx=mean(x),my=mean(y);let s=0;for(let i=0;i<n;i++)s+=(x[i]-mx)*(y[i]-my);return s/(n-1);}
+  // Kovarianz mit 1/n — konsistent mit der im Skript/Formelsammlung gelehrten Definition s_xy.
+  function covariance(x,y){const n=x.length,mx=mean(x),my=mean(y);let s=0;for(let i=0;i<n;i++)s+=(x[i]-mx)*(y[i]-my);return s/n;}
   function pearson(x,y){
     const n=x.length,mx=mean(x),my=mean(y);
     let sxy=0,sxx=0,syy=0;
@@ -541,13 +543,20 @@ const Stats = (function(){
   function tCdf(x,df){const xx=df/(df+x*x);const ib=0.5*betai(df/2,0.5,xx);return x>0?1-ib:ib;}
   function tQuantile(p,df){ // bisection on tCdf
     if(p<=0)return -Infinity; if(p>=1)return Infinity;
-    let lo=-60,hi=60;
+    // Grenzen weit genug, damit auch t(0,995; df=1)=63,657 (und größere) nicht
+    // an die Intervallgrenze geklemmt werden. 200 Halbierungen → Maschinengenauigkeit.
+    let lo=-1e6,hi=1e6;
     for(let i=0;i<200;i++){const m=(lo+hi)/2; (tCdf(m,df)<p)?lo=m:hi=m;}
     return (lo+hi)/2;
   }
-  const binomPmf=(k,n,p)=> (k<0||k>n)?0: Math.exp(gammaln(n+1)-gammaln(k+1)-gammaln(n-k+1)+k*Math.log(p)+(n-k)*Math.log(1-p));
+  const binomPmf=(k,n,p)=>{
+    if(k<0||k>n) return 0;
+    if(p<=0) return k===0?1:0;   // 0·log(0) wäre NaN — Randfall p=0 sauber abfangen
+    if(p>=1) return k===n?1:0;   // dito p=1
+    return Math.exp(gammaln(n+1)-gammaln(k+1)-gammaln(n-k+1)+k*Math.log(p)+(n-k)*Math.log(1-p));
+  };
   function binomCdf(k,n,p){let s=0;for(let i=0;i<=k;i++)s+=binomPmf(i,n,p);return s;}
-  const poissonPmf=(k,l)=> k<0?0: Math.exp(-l+k*Math.log(l)-gammaln(k+1));
+  const poissonPmf=(k,l)=> (k<0)?0: (l<=0? (k===0?1:0): Math.exp(-l+k*Math.log(l)-gammaln(k+1)));
   function poissonCdf(k,l){let s=0;for(let i=0;i<=k;i++)s+=poissonPmf(i,l);return s;}
   const expPdf=(x,l)=> x<0?0: l*Math.exp(-l*x);
   const expCdf=(x,l)=> x<0?0: 1-Math.exp(-l*x);
@@ -694,19 +703,26 @@ function loadProgress(){ try{return JSON.parse(localStorage.getItem(STORE_KEY))|
 function saveProgress(){ try{localStorage.setItem(STORE_KEY,JSON.stringify(progress));}catch(e){} }
 function markDone(secId,val){ if(val)progress.done[secId]=1; else delete progress.done[secId]; saveProgress(); updateProgressUI(); }
 function isDone(secId){return !!progress.done[secId];}
-function saveQuiz(lid,score,total){ progress.quiz[lid]={score,total}; saveProgress(); updateProgressUI(); }
+function saveQuiz(lid,score,total){
+  const prev=progress.quiz[lid];
+  // Besten Versuch behalten: einen schlechteren Score NICHT über einen besseren schreiben.
+  if(!prev || score/total >= prev.score/prev.total){ progress.quiz[lid]={score,total}; }
+  saveProgress(); updateProgressUI();
+}
+// Ein Quiz zählt erst als bestanden (und damit als Fortschritt), wenn ≥ 80 % erreicht sind.
+function quizPassed(lid){ const q=progress.quiz[lid]; return !!(q && q.total>0 && q.score/q.total>=0.8); }
 
 function lessonSections(L){return L.sections;}
 function lessonProgress(L){
   const secs=lessonSections(L); const done=secs.filter(s=>isDone(L.id+"-"+s.idx)).length;
   let total=secs.length, hit=done;
-  if(L.quiz&&L.quiz.length){ total+=1; if(progress.quiz[L.id]) hit+=1; }
+  if(L.quiz&&L.quiz.length){ total+=1; if(quizPassed(L.id)) hit+=1; }
   return total? hit/total : 0;
 }
 function overallProgress(){
   let t=0,h=0;
   LESSONS.forEach(L=>{const secs=lessonSections(L);t+=secs.length;h+=secs.filter(s=>isDone(L.id+"-"+s.idx)).length;
-    if(L.quiz&&L.quiz.length){t+=1;if(progress.quiz[L.id])h+=1;}});
+    if(L.quiz&&L.quiz.length){t+=1;if(quizPassed(L.id))h+=1;}});
   return t? h/t : 0;
 }
 
@@ -971,7 +987,7 @@ function buildSidebar(){
       list.appendChild(it);
     });
     if(L.quiz&&L.quiz.length){
-      const it=el("div",{class:"section-item quizrow"+(progress.quiz[L.id]?" done":""),id:"si-quiz-"+L.id,
+      const it=el("div",{class:"section-item quizrow"+(quizPassed(L.id)?" done":""),id:"si-quiz-"+L.id,
         onclick:()=>{location.hash="#/quiz/"+L.id; closeMobile();}});
       it.appendChild(el("span",{class:"snum"},"🧠"));
       it.appendChild(el("span",{class:"stit"},"Quiz"+(progress.quiz[L.id]?" ("+progress.quiz[L.id].score+"/"+progress.quiz[L.id].total+")":"")));
@@ -1004,7 +1020,7 @@ function updateProgressUI(){
     if(ring){const c=2*Math.PI*14;ring.style.strokeDashoffset=c*(1-p);}
     L.sections.forEach(s=>{const it=$("#si-"+L.id+"-"+s.idx);if(it)it.classList.toggle("done",isDone(L.id+"-"+s.idx));});
     if(L.quiz&&L.quiz.length){const qi=$("#si-quiz-"+L.id);
-      if(qi){qi.classList.toggle("done",!!progress.quiz[L.id]);
+      if(qi){qi.classList.toggle("done",quizPassed(L.id));
         qi.querySelector(".stit").textContent="Quiz"+(progress.quiz[L.id]?" ("+progress.quiz[L.id].score+"/"+progress.quiz[L.id].total+")":"");}}
   });
 }
@@ -1573,7 +1589,8 @@ function initApp(){
     var NA = null;
     var spalten = [
       {
-        label: "Geschlecht", ordnung: null,
+        label: "Geschlecht", ordnung: null, dichotom: false,
+        hinweis: "In dieser Stichprobe kommen nur zwei Ausprägungen vor (weiblich/männlich); das Merkmal hatte in der Befragung aber drei mögliche Ausprägungen (weiblich/männlich/divers) → nicht dichotom.",
         werte: ["weiblich", "weiblich", "weiblich", "weiblich", "männlich", "weiblich", "weiblich", "weiblich", "männlich", "männlich", "weiblich", "männlich", "weiblich", "weiblich", "weiblich", "weiblich", "weiblich", "weiblich", "männlich", "weiblich", "weiblich", "weiblich", "weiblich", "weiblich", "weiblich"]
       },
       {
@@ -1609,9 +1626,14 @@ function initApp(){
           skala = "ordinal"; zusatz = "";
           grund = "Kategorien MIT sinnvoller Reihenfolge („" + sp.ordnung[0] + "“ … „" + sp.ordnung[sp.ordnung.length - 1] + "“), aber die Abstände sind nicht interpretierbar → ordinal.";
         } else {
-          skala = "nominal"; zusatz = distinct.length === 2 ? "dichotom" : "";
-          grund = "Kategorien ohne sinnvolle Reihenfolge → nominal" +
-            (distinct.length === 2 ? "; genau zwei Ausprägungen → dichotom." : ".");
+          // Dichotomie ist eine Eigenschaft des MERKMALS (zwei mögliche Ausprägungen),
+          // nicht der Stichprobe — daher per Flag, nicht aus distinct.length geschlossen.
+          skala = "nominal"; zusatz = sp.dichotom ? "dichotom" : "";
+          if (sp.dichotom) {
+            grund = "Kategorien ohne sinnvolle Reihenfolge → nominal; das Merkmal hat genau zwei mögliche Ausprägungen → dichotom.";
+          } else {
+            grund = "Kategorien ohne sinnvolle Reihenfolge → nominal." + (sp.hinweis ? " " + sp.hinweis : "");
+          }
         }
       } else {
         skala = "kardinal";
@@ -1819,7 +1841,7 @@ function initApp(){
           { t: "def", term: "Grundgesamtheit", html: "Die Grundgesamtheit umfasst <b>alle</b> Merkmalsträger, die für die Studie in Frage kommen. Im Beispiel: alle deutschen Krankenhäuser." },
           { t: "def", term: "Stichprobe", html: "Die Stichprobe umfasst alle <b>tatsächlich untersuchten</b> Merkmalsträger. Sie sollte <b>repräsentativ</b> sein. Faustregel: Je größer die Stichprobe, desto präziser die Aussagen – aber eine große, nicht repräsentative Stichprobe nützt nichts." },
 
-          { t: "quote", html: "„Bei der Zusammensetzung der Stichprobe ist es von besonderer Bedeutung, dass die Merkmalsträger repräsentativ für die Grundgesamtheit sind.“", source: "Bornewasser-Hermes, 2022" },
+          { t: "quote", html: "„Bei der Zusammensetzung der Stichprobe ist es von besonderer Bedeutung, dass die Merkmalsträger repräsentativ für die Grundgesamtheit sind …“", source: "Bornewasser-Hermes, 2022" },
 
           { t: "sub", html: "Wie zieht man eine Stichprobe? Vier Arten" },
           {
@@ -1873,7 +1895,7 @@ function initApp(){
               ["Anzahl freie Intensivbetten", "0, 1, 2, … (z. B. 20 vs. 10)", "kardinal, diskret"],
               ["Ausgaben (auf den Cent)", "beliebiger Geldbetrag", "kardinal, stetig"]
             ],
-            caption: "Vier Merkmale, drei Skalenniveaus – die Skala bestimmt, was man rechnen darf."
+            caption: "Sechs Merkmale, drei Skalenniveaus – die Skala bestimmt, was man rechnen darf."
           },
 
           { t: "warn", title: "Klassiker-Falle: Zahl ≠ metrisch", tag: "Klausur", html: "Eine Ausprägung in Zahlenform bedeutet <b>nicht automatisch</b> kardinal/metrisch! <b>Postleitzahl</b>, <b>Schulnote</b> und <b>Trikotnummer</b> sind Zahlen, aber nominal bzw. ordinal. Das ist der häufigste Klausurfehler zu dieser Lektion." },
@@ -2334,7 +2356,7 @@ function initApp(){
 
           {t:"aha", title:"Höhe lügt, Fläche sagt die Wahrheit", html:"Beim Balkendiagramm zählt die <b>Höhe</b>, beim Histogramm die <b>Fläche</b>. Die schmale Klasse \\((45;50]\\) ist nur 5 Jahre breit, hat aber die meisten Personen (6). Würde man nur die Höhe (rel. Häufigkeit) zeichnen, sähe sie unwichtig aus. Über die <b>Dichte</b> (0,063 – mit Abstand die höchste) wird sie korrekt zur Spitze. Wie auf einer Landkarte: ein winziges, dicht besiedeltes Bundesland kann mehr Einwohner haben als ein riesiges, leeres."},
 
-          {t:"quote", html:"Die Fläche eines jeden Rechtecks zeichnet sich dadurch aus, dass sie die relative Häufigkeit der entsprechenden Klasse widerspiegelt. Damit muss die gesamte Fläche unter dem Histogramm 1 sein.", source:"BSTA01-02, S.41"},
+          {t:"quote", html:"Die Fläche eines jeden Rechtecks zeichnet sich dadurch aus, dass sie die relative Häufigkeit der entsprechenden Klasse widerspiegelt. Damit muss die gesamte Fläche unter dem Histogramm 1 sein.", source:"BSTA01-02, S.42"},
 
           {t:"p", html:"Kontrolle: Klasse 3 hat Breite 5 · Dichte 0,063 ≈ 0,316 ≈ 6/19. Summiert man alle Rechteckflächen, kommt 1 heraus. <b>Das</b> ist der Sinn der Dichte."},
 
@@ -2397,7 +2419,7 @@ function initApp(){
           {t:"p", html:"Sortiere aufsteigend zu \\(x_{(1)},\\dots,x_{(n)}\\). Berechne die <b>Position</b> \\(n\\cdot p\\). Dann gibt es zwei Fälle:"},
           {t:"formula", tex:"x_p=\\begin{cases}x_{(\\lceil n\\,p\\rceil)} & \\text{falls } n\\,p \\text{ nicht ganzzahlig (aufrunden!)}\\\\[6pt] \\dfrac{x_{(n p)}+x_{(n p+1)}}{2} & \\text{falls } n\\,p \\text{ ganzzahlig (Mittel zweier Stellen)}\\end{cases}", caption:"Quantil aus der Urliste"},
 
-          {t:"aha", title:"Den halben Menschen gibt es nicht", html:"Bei 25 Werten und 50 % ist die Position \\(25\\cdot0{,}5=12{,}5\\). Es gibt aber keinen halben Befragten – also rundet man auf und nimmt den 13. Werts. Nur wenn die Position glatt aufgeht (z.B. \\(24\\cdot0{,}5=12\\)), nimmt man fairerweise das Mittel aus dem 12. und 13. Wert."},
+          {t:"aha", title:"Den halben Menschen gibt es nicht", html:"Bei 25 Werten und 50 % ist die Position \\(25\\cdot0{,}5=12{,}5\\). Es gibt aber keinen halben Befragten – also rundet man auf und nimmt den 13. Wert. Nur wenn die Position glatt aufgeht (z.B. \\(24\\cdot0{,}5=12\\)), nimmt man fairerweise das Mittel aus dem 12. und 13. Wert."},
 
           {t:"example", title:"Alter (kardinal, n = 19) — sauberster Fall", html:
             "Sortiert: 15; 16; 17; 20; 26; 35; 35; 39; 44; <b>47</b>; 47; 48; 48; 49; <b>50</b>; 52; 55; 56; 68<br>"+
@@ -2411,7 +2433,7 @@ function initApp(){
             "• \\(25\\cdot0{,}5=12{,}5\\) → 13. Stelle → \\(x_{0,5}=1\\).<br>"+
             "• \\(25\\cdot0{,}25=6{,}25\\) → 7. Stelle → \\(x_{0,25}=1\\).<br>"+
             "• \\(25\\cdot0{,}75=18{,}75\\) → 19. Stelle → \\(x_{0,75}=1\\).<br>"+
-            "Alle drei sind 1, „weil diese Ausprägung besonders häufig vorkommt“."},
+            "Alle drei sind 1, „weil diese Ausprägung besonders häufig im Datensatz vorkommt“."},
 
           {t:"example", title:"Zufriedenheit (ordinal, n = 24) — der knifflige Fall", html:
             "Sortiert best→schlecht: sg; g×12; b×9; a×2.<br>"+
@@ -2575,7 +2597,7 @@ function initApp(){
 
           /* ---------- WIDGET 6: Boxplot-Generator ---------- */
           {t:"widget", title:"Boxplot-Generator — mit Hover", icon:"📦",
-            hint:"Box = Interquartilsabstand, Linie = Median, Whisker = Min/Max. Fahre mit der Maus über die Elemente.",
+            hint:"Box = Interquartilsabstand, Linie = Median, Whisker = Min/Max. Fahre mit der Maus über die Elemente. <i>Der Boxplot wird im IU-Skript nicht behandelt; hier nur als Ergänzung, weil er IQR und Median anschaulich zusammenführt.</i>",
             render:renderBoxplot}
         ]
       }
@@ -3469,27 +3491,29 @@ function initApp(){
 <script>
 /* ===========================================================================
    LEKTION 3 — Auswertungsmethoden zweidimensionaler Daten
-   BSTA01-02 "Statistik" (Prof. Dr. Heike Bornewasser-Hermes, 2022), S. 67–100.
-   Alle Zahlen gegen die Seitenbilder page_067–page_100 verifiziert.
+   BSTA01-02 "Statistik" (Prof. Dr. Heike Bornewasser-Hermes, 2022), S. 66–100.
+   Alle Zahlen gegen die Seitenbilder page_066–page_100 verifiziert.
    =========================================================================== */
 (function(){
   "use strict";
 
   /* ----- lokale Helfer (kollidieren dank IIFE nie mit anderen Lektionen) ----- */
 
-  // Eltern-Leitbeispiel (Tabelle 28, page_092): Größe Mutter (x) / Vater (y), n=12.
+  // Eltern-Leitbeispiel (Tabelle 27 Ausgangsdaten / Tabelle 28 Hilfstabelle):
+  // Alter Mutter (x) / Alter Vater (y), n=12.
   // Reproduziert x̄=52, ȳ=57, Σ(x−x̄)(y−ȳ)=220, Σ(x−x̄)²=210, Σ(y−ȳ)²=546, r≈0,650.
   const ELTERN_X = [56,49,48,46,47,56,57,53,58,54,47,53];
   const ELTERN_Y = [60,55,46,52,56,51,71,60,61,58,49,65];
 
   // Interpretations-Etikett für |Zusammenhangsmaß| in [0,1].
+  // Einteilung exakt wie im Skript (S. 75, rechtsseitig geschlossene Intervalle):
+  // 0–0,2 kein · 0,2–0,4 schwach · 0,4–0,6 mittel · 0,6–0,8 stark · 0,8–1 sehr stark.
   function staerke(r){
     const a = Math.abs(r);
-    if(a < 0.05) return "praktisch kein";
-    if(a < 0.2)  return "sehr schwacher";
-    if(a < 0.4)  return "schwacher";
-    if(a < 0.6)  return "mittlerer";
-    if(a < 0.8)  return "starker";
+    if(a <= 0.2) return "kein";
+    if(a <= 0.4) return "schwacher";
+    if(a <= 0.6) return "mittlerer";
+    if(a <= 0.8) return "starker";
     return "sehr starker";
   }
 
@@ -3916,7 +3940,7 @@ function initApp(){
 
     // feste, anschauliche Datensätze
     const dPlus1 = [[1,2],[2,4],[3,6],[4,8],[5,10],[6,12]];            // r=+1
-    const dNeg1  = [[10,100],[20,80],[30,60],[40,40],[50,20],[60,0]]; // r=−1 (Abb. 13, page_096)
+    const dNeg1  = [[10,100],[20,80],[30,60],[40,40],[50,20],[60,0]]; // r=−1 (Abb. 13, page_093)
     const dPos03 = [[1,5],[2,6],[3,3],[4,2],[5,4],[6,2],[7,8],[8,7]];  // r=+0,30
     const dPos065= ELTERN_X.slice(0,12).map((x,i)=>[x,ELTERN_Y[i]]);  // Eltern, r≈0,65
     const dNeg05 = [[1,8],[2,8],[3,2],[4,3],[5,6],[6,2],[7,3],[8,5]];  // r=−0,50
@@ -4270,7 +4294,7 @@ function initApp(){
           {t:"formula", tex:"K=\\sqrt{\\frac{\\chi^2}{\\chi^2+n}}", caption:"Kontingenzkoeffizient C (= K)"},
           {t:"p", html:"C hat <i>immer noch</i> einen Haken: Es erreicht die 1 nie ganz, sondern nur ein \\(K_{max}<1\\), das von der Tabellengröße abhängt. Deshalb teilen wir durch \\(K_{max}\\) und bekommen das schöne, auf \\([0,1]\\) normierte <b>korrigierte C*</b>."},
           {t:"formula", tex:"K^{*}=\\frac{K}{K_{max}},\\qquad K_{max}=\\sqrt{\\frac{M-1}{M}},\\qquad M=\\min\\{I,J\\}", caption:"korrigierter Kontingenzkoeffizient C* (= K*)"},
-          {t:"quote", html:"Da der Kontingenzkoeffizient den Wert 1 nie erreichen kann, wird er korrigiert.", source:"Bornewasser-Hermes, 2022 (sinngemäß)"},
+          {t:"quote", html:"Der Kontingenzkoeffizient kann seinen Maximalwert 1 nicht erreichen; sein Höchstwert hängt von der Tabellengröße (Zahl der Ausprägungen) ab. Um einen auf \\([0,1]\\) vergleichbaren Wert zu erhalten, wird er durch diesen Höchstwert \\(K_{max}\\) korrigiert.", source:"Bornewasser-Hermes, 2022 (sinngemäß)"},
 
           {t:"aha", title:"Was wäre, wenn nichts zusammenhinge?",
             html:"Die erwarteten Häufigkeiten sind die „Wenn alles Zufall wäre“-Welt — die langweiligste aller möglichen Tabellen. χ² misst nur, <b>wie weit die echte Welt von dieser Zufallswelt abweicht</b>. Kein Abstand → kein Zusammenhang."},
@@ -4393,10 +4417,10 @@ function initApp(){
           {t:"aha", title:"Die vier Ecken des Tanzparketts",
             html:"Lege das Fadenkreuz \\((\\bar x,\\bar y)\\) in die Mitte der Punktwolke. Jeder Punkt im <b>rechten-oberen</b> oder <b>linken-unteren</b> Eck „stimmt für positiv“ (Produkt \\((x-\\bar x)(y-\\bar y)>0\\)), jeder im linken-oberen oder rechten-unteren „stimmt für negativ“. r ist das <b>normierte Abstimmungsergebnis</b> aller Punkte. Im Scatter-Widget unten siehst du die Quadranten farbig."},
 
-          {t:"h", text:"Leitbeispiel: Größe der Eltern (n = 12, Tabelle 28)", icon:"📏"},
-          {t:"p", html:"Untersucht wird der Zusammenhang zwischen der Körpergröße von <b>Mutter (X)</b> und <b>Vater (Y)</b> bei 12 Elternpaaren. Die Originaldaten:"},
+          {t:"h", text:"Leitbeispiel: Alter der Eltern (n = 12, Tabelle 27/28)", icon:"👪"},
+          {t:"p", html:"Untersucht wird der Zusammenhang zwischen dem <b>Alter der Mutter (X)</b> und dem <b>Alter des Vaters (Y)</b> bei 12 Elternpaaren junger Patient:innen. Die Originaldaten:"},
           {t:"table",
-            headers:["i","\\(x_i\\) (Mutter)","\\(y_i\\) (Vater)","\\(x_i-\\bar x\\)","\\(y_i-\\bar y\\)","Produkt","\\((x_i-\\bar x)^2\\)","\\((y_i-\\bar y)^2\\)"],
+            headers:["i","\\(x_i\\) (Alter Mutter)","\\(y_i\\) (Alter Vater)","\\(x_i-\\bar x\\)","\\(y_i-\\bar y\\)","Produkt","\\((x_i-\\bar x)^2\\)","\\((y_i-\\bar y)^2\\)"],
             rows:[
               ["1","56","60","4","3","12","16","9"],
               ["2","49","55","−3","−2","6","9","4"],
@@ -4421,7 +4445,7 @@ function initApp(){
               "<b>Zähler</b> (Summe der Produkte): \\(\\sum(x_i-\\bar x)(y_i-\\bar y)=220\\).<br>"+
               "<b>Nenner:</b> \\(\\sqrt{\\sum(x_i-\\bar x)^2\\cdot\\sum(y_i-\\bar y)^2}=\\sqrt{210\\cdot 546}=\\sqrt{114660}\\approx 338{,}6\\).<br>"+
               "\\[r_{x,y}=\\frac{220}{\\sqrt{210\\cdot 546}}=\\frac{220}{338{,}6}\\approx \\mathbf{0{,}650}\\]"+
-              "<b>Ergebnis:</b> r ≈ 0,65 → <b>starker, positiver linearer Zusammenhang</b>: größere Mütter tendieren zu größeren Vätern (assortative Paarung)."},
+              "<b>Ergebnis:</b> r ≈ 0,65 → <b>starker, positiver linearer Zusammenhang</b>: Wenn die Mutter älter ist, so gilt dies in der Regel auch für den Vater und umgekehrt."},
 
           {t:"quote", html:"Der Korrelationskoeffizient nach Bravais-Pearson misst die Stärke und Richtung des linearen Zusammenhangs zwischen zwei metrisch skalierten Merkmalen.", source:"Bornewasser-Hermes, 2022 (sinngemäß)"},
 
@@ -4464,7 +4488,7 @@ function initApp(){
               "<li>Geschlecht (nominal) × Lieblingsfarbe (nominal) → <b>Kontingenz</b> (χ², C, C*).</li>"+
               "<li>Schulnote (ordinal) × Zufriedenheit (ordinal) → <b>Spearman</b> \\(r_S\\).</li>"+
               "<li>Lernstunden (metrisch) × Note-als-Rang (ordinal) → schwächer = ordinal → <b>Spearman</b> \\(r_S\\).</li>"+
-              "<li>Größe Mutter (metrisch) × Größe Vater (metrisch) → <b>Bravais-Pearson</b> \\(r\\).</li>"+
+              "<li>Alter Mutter (metrisch) × Alter Vater (metrisch) → <b>Bravais-Pearson</b> \\(r\\).</li>"+
               "</ul>"},
 
           {t:"quote", html:"Bei der Wahl des geeigneten Zusammenhangsmaßes ist stets das niedrigere der beiden Skalenniveaus ausschlaggebend.", source:"Bornewasser-Hermes, 2022 (sinngemäß)"},
@@ -4476,10 +4500,10 @@ function initApp(){
           {t:"def", term:"Scheinkorrelation",
             html:"Zwei Merkmale korrelieren nur, weil beide von einer gemeinsamen <b>dritten Größe</b> (Confounder) abhängen — z. B. Eisverkauf & Sonnenbrände, gemeinsame Ursache: Sonne/Temperatur."},
           {t:"def", term:"Nonsens-/Unsinnskorrelation",
-            html:"Ein rein zufälliger statistischer Zusammenhang <b>ohne jede</b> sachlogische Beziehung — der Klassiker: Storchenpopulation & Geburtenzahl."},
+            html:"Ein rein zufälliger statistischer Zusammenhang <b>ohne jede</b> sachlogische Beziehung und <b>ohne</b> gemeinsame dritte Größe — der Klassiker: die schrumpfende Zahl der Piraten und der Anstieg der globalen Durchschnittstemperatur. Beide verlaufen über die Jahrhunderte gegenläufig, ohne das Geringste miteinander zu tun zu haben."},
 
-          {t:"aha", title:"Der Storch bringt die Babys",
-            html:"In Regionen mit mehr Störchen werden tatsächlich mehr Babys geboren — die Korrelation ist real und hoch. Die Ursache ist aber die <b>Ländlichkeit</b>: viel Fläche → mehr Störche <i>und</i> mehr (kinderreiche) Familien. Ein perfektes Bild dafür, dass eine starke Korrelation eine Kausalität nur <b>vortäuschen</b> kann."},
+          {t:"aha", title:"Der Storch bringt die Babys — eine Scheinkorrelation",
+            html:"In Regionen mit mehr Störchen werden tatsächlich mehr Babys geboren — die Korrelation ist real und hoch. Die Ursache ist aber die <b>Ländlichkeit</b> als gemeinsame dritte Größe: viel Fläche → mehr Störche <i>und</i> mehr (kinderreiche) Familien. Damit ist es das Paradebeispiel einer <b>Scheinkorrelation</b> — eine starke Korrelation täuscht eine Kausalität nur <b>vor</b>."},
 
           {t:"quote", html:"Eine Korrelation darf nicht mit einer Kausalität verwechselt werden. Bei einer Scheinkorrelation wird der Zusammenhang durch eine dritte Variable verursacht.", source:"Bornewasser-Hermes, 2022 (sinngemäß)"},
 
@@ -4532,7 +4556,7 @@ function initApp(){
       { q:"Mit Σ(x−x̄)(y−ȳ)=220, Σ(x−x̄)²=210, Σ(y−ȳ)²=546: Wie groß ist r?",
         options:["0,40","0,65","0,82","1,00"],
         correct:1,
-        explain:"r = 220/√(210·546) = 220/√114660 ≈ 220/338,6 ≈ 0,65 — starker positiver linearer Zusammenhang (Eltern-Größen)." },
+        explain:"r = 220/√(210·546) = 220/√114660 ≈ 220/338,6 ≈ 0,65 — starker positiver linearer Zusammenhang (Alter der Eltern)." },
 
       { q:"Ein Merkmal ist metrisch, das andere ordinal. Welche Maßzahl ist korrekt?",
         options:["Pearson r","Spearman \\(r_S\\)","Kontingenz C","Kovarianz"],
@@ -4556,7 +4580,7 @@ function initApp(){
  * Leitbeispiel: Reaktionszeit unter Alkoholeinfluss (Tabelle 30).
  * Verifiziert: b≈53,844 · a≈596,503 · r≈0,742 · R²≈0,551 · ŷ(0,4)≈618,04.
  * Methodik: Verschiebungssatz mit Nenner n (Populationsvarianz). Die Quotienten
- * b und r sind nenner-unabhängig, daher liefert ctx.Stats.regression/pearson
+ * b und r sind nenner-unabhängig, daher liefert die lokale Funktion kennzahlen()
  * exakt die Skriptzahlen.
  * ========================================================================== */
 (function(){
@@ -4808,8 +4832,8 @@ function initApp(){
           {t:"p", html:"Klingt aufwendig — ist aber geschenkt. Der einfachste Rechenweg ist <b>einfach r quadrieren</b>:"},
           {t:"formula", tex:"R^2 = r_{x,y}^2",
             caption:"Der bequemste Weg zu R²."},
-          {t:"quote", source:"Bornewasser-Hermes, BSTA01-02, S. 112",
-            html:"Das Einzige, was wir machen müssen, ist, das Ergebnis des Korrelationskoeffizienten zu quadrieren."},
+          {t:"quote", source:"Bornewasser-Hermes, BSTA01-02, S. 113",
+            html:"Das Einzige, was wir demnach machen müssen, ist, das Ergebnis des Korrelationskoeffizienten von Bravais-Pearson zu quadrieren."},
 
           {t:"example", title:"R² im Leitbeispiel (S. 113)",
             html:
@@ -4837,7 +4861,7 @@ function initApp(){
           {t:"formula", tex:"\\hat{\\sigma}_0 = \\frac{\\hat{\\sigma}_{x,y}}{\\bar{y}} = \\frac{43{,}279}{659{,}5} = 0{,}066 \\;(=6{,}6\\,\\%)",
             caption:"Relativer Standardfehler — durchschnittliche prozentuale Abweichung. Je näher an 0 %, desto besser."},
 
-          {t:"sub", text:"Die drei Kriterien gehen Hand in Hand (S. 114)"},
+          {t:"sub", text:"Die drei Kriterien gehen Hand in Hand (S. 115)"},
           {t:"p", html:"Hohe Korrelation → hohes R² → niedriger Standardfehler. Und umgekehrt: niedrige Korrelation → niedriges R² → großer Fehler. Sie erzählen alle dieselbe Geschichte aus verschiedenen Blickwinkeln."},
 
           {t:"quote", source:"Bornewasser-Hermes, BSTA01-02, S. 115 (Zusammenfassung)",
@@ -6028,7 +6052,7 @@ function initApp(){
 
           {t:"formula", tex:"P(A)=\\frac{\\text{Anzahl der Ergebnisse in } A}{\\text{Anzahl der Ergebnisse in } \\Omega}=\\frac{|A|}{|\\Omega|}", caption:"Laplace-Wahrscheinlichkeit: günstige durch mögliche"},
 
-          {t:"quote", html:"Beim Würfel hat demnach jede Seite die gleiche Wahrscheinlichkeit in Höhe von 1/6, dass sie gewürfelt wird.", source:"BSTA01-02, S. 131"},
+          {t:"quote", html:"Beim Würfel hat demnach jede Seite die gleiche Wahrscheinlichkeit in Höhe von 1/6, dass sie gewürfelt wird.", source:"BSTA01-02, S. 132"},
 
           {t:"sub", text:"Die Axiome (Spielregeln jeder Wahrscheinlichkeit)"},
           {t:"formula", tex:"P(A)\\ge 0 \\qquad P(\\Omega)=1 \\qquad 0\\le P(A)\\le 1", caption:"Nichtnegativität · Normierung · Wertebereich"},
@@ -6841,7 +6865,7 @@ function initApp(){
               ["6", "0,0162", "0,9965"],
               ["7", "0,0031", "0,9996"],
               ["8", "0,00039", "≈ 1,0000"],
-              ["9", "0,0000295", "≈ 1,0000"],
+              ["9", "0,0000286", "≈ 1,0000"],
               ["10", "0,00000095", "1,0000"]
             ] },
 
@@ -6955,7 +6979,7 @@ function initApp(){
           { t: "sub", text: "Quantile – die Umkehraufgabe" },
           { t: "p", html: "Bisher: Wert \\(x\\) bekannt → Wahrscheinlichkeit gesucht. Jetzt umgekehrt: <b>Wahrscheinlichkeit bekannt → Wert gesucht.</b> Man fragt etwa: „Welche Fahrtzeit wird an 95 % der Tage nicht überschritten?\" Die Antwort ist ein <b>Quantil</b>." },
           { t: "formula", tex: "x_p=\\mu+z_p\\cdot\\sigma\\qquad\\text{mit}\\qquad z_p=-\\,z_{\\,1-p}\\;\\;\\text{für }p<0{,}5", caption: "Quantil-Formel (Umkehrung der Standardisierung)" },
-          { t: "table", caption: "Tabelle 33 – wichtige Quantile der Standardnormalverteilung (Quelle: Bornewasser-Hermes, 2023)", compact: true,
+          { t: "table", caption: "Tabelle 33 – wichtige Quantile der Standardnormalverteilung (Quelle: Bornewasser-Hermes, 2023). Hinweis: Das Skript druckt bei p = 0,995 den Wert 2,5788 — ein Druckfehler; korrekt (und hier verwendet) ist 2,5758.", compact: true,
             headers: ["p", "0,9", "0,95", "0,975", "0,99", "0,995"],
             rows: [["zₚ", "1,2816", "1,6449", "1,96", "2,3263", "2,5758"]] },
           { t: "example", title: "Quantil-Aufgaben durchgerechnet", html:
@@ -7668,7 +7692,7 @@ function initApp(){
             html:"Du berechnest die Abweichungen gegen \\(\\bar{x}\\), das du <b>selbst aus denselben Daten</b> bestimmt hast. Der Mittelwert sitzt damit „verdächtig nah“ an den Daten — die Streuung sieht künstlich kleiner aus. Das kostet einen <b>Freiheitsgrad</b>. Teilen durch \\(n\\) würde die Varianz systematisch zu klein schätzen (verzerrt); die Korrektur \\(n-1\\) macht den Schätzer erwartungstreu."},
 
           {t:"warn", title:"Stolperfalle: s erbt die Bravheit von s² NICHT", tag:"wichtig",
-            html:"\\(s^2\\) ist erwartungstreu <i>und</i> konsistent für \\(\\sigma^2\\). Aber: Die Standardabweichung \\(s=\\sqrt{s^2}\\) gilt <b>weder als erwartungstreuer noch als konsistenter</b> Schätzer für \\(\\sigma\\). Wurzelziehen ist eine nichtlineare Operation und verzerrt den Erwartungswert. Beliebte Klausurfalle! <span class='muted'>(Skript S. 186)</span>"},
+            html:"\\(s^2\\) ist erwartungstreu <i>und</i> konsistent für \\(\\sigma^2\\). Aber: Die Standardabweichung \\(s=\\sqrt{s^2}\\) gilt <b>weder als erwartungstreuer noch als konsistenter</b> Schätzer für \\(\\sigma\\). Wurzelziehen ist eine nichtlineare Operation und verzerrt den Erwartungswert. Beliebte Klausurfalle! <span class='muted'>(So im Skript, S. 186 — für das Modul die maßgebliche Darstellung. Mathematische Anmerkung: \\(s\\) ist zwar nicht erwartungstreu, aber sehr wohl konsistent für \\(\\sigma\\).)</span>"},
 
           {t:"aha", title:"Aha — der Dartpfeil-Vergleich",
             html:"<b>Erwartungstreue</b> = du triffst <i>im Schnitt</i> die Mitte (kein systematischer Drall nach links/rechts). <b>Konsistenz</b> = je mehr Pfeile du wirfst (größeres n), desto enger der Cluster um die Mitte. Ein Schätzer kann erwartungstreu sein und trotzdem mies streuen — deshalb braucht man <i>auch</i> ein ordentliches n."},
@@ -7700,7 +7724,7 @@ function initApp(){
           {t:"quote", source:"Skript S. 184",
             html:"„Mit einer sog. Punktschätzung würde man nun einen konkreten Wert für den Mittelwert und die Streuung festlegen, welcher dann für die Grundgesamtheit Gültigkeit haben soll.“"},
 
-          {t:"p", html:"Skript-Fazit (S. 186): Die durchschnittliche Unternehmenszugehörigkeit wird auf Basis der Stichprobe auf <b>11 ± 3,21 Jahre</b> geschätzt."},
+          {t:"p", html:"Skript-Fazit (S. 187): Die durchschnittliche Unternehmenszugehörigkeit wird auf Basis der Stichprobe auf <b>11 ± 3,21 Jahre</b> geschätzt."},
 
           {t:"quote", source:"Skript S. 187",
             html:"„Der große Nachteil von Punktschätzern ist, dass man sich auf einen speziellen Wert … festlegt. Die Chance, dass unser wahrer Wert der Grundgesamtheit durchaus mal ein wenig abweicht, ist damit nicht so gering.“"},
@@ -7774,10 +7798,10 @@ function initApp(){
           {t:"h", icon:"📊", text:"Quantil-Tabelle der Standardnormalverteilung"},
           {t:"table",
             headers:["Kumulierte W. p","0,9","0,95","0,975","0,99","0,995"],
-            rows:[["Quantil z_p","1,2816","1,6449","1,96","2,3263","2,5788"]],
-            caption:"Tabelle 34 (Skript S. 192). Für 95 %-KI: p = 1−α/2 = 0,975 ⇒ z = 1,96.",
+            rows:[["Quantil z_p","1,2816","1,6449","1,96","2,3263","2,5758"]],
+            caption:"Tabelle 34 (Skript S. 193). Für 95 %-KI: p = 1−α/2 = 0,975 ⇒ z = 1,96. Hinweis: Das Skript druckt bei p = 0,995 den Wert 2,5788 — ein Druckfehler; korrekt ist 2,5758.",
             compact:true, highlight:[0]},
-          {t:"p", html:"Faustregel: 90 % ⇒ z=1,6449 · 95 % ⇒ z=1,96 · 99 % ⇒ z=2,5788. Das t-Quantil \\(t_{7;0,975}=2{,}365\\) ist deutlich größer als 1,96 — der Grund für das breitere t-Intervall."},
+          {t:"p", html:"Faustregel: 90 % ⇒ z=1,6449 · 95 % ⇒ z=1,96 · 99 % ⇒ z=2,5758. Das t-Quantil \\(t_{7;0,975}=2{,}365\\) ist deutlich größer als 1,96 — der Grund für das breitere t-Intervall."},
 
           {t:"why", title:"Warum brauche ich das?",
             html:"„±3 %“ bei Wahlumfragen, Konfidenzbänder in medizinischen Studien, Toleranzbereiche in der Qualitätskontrolle — überall ist der wahre Wert unbekannt, und eine ehrliche Aussage braucht einen <b>Bereich mit Wahrscheinlichkeit</b> statt eines scheinpräzisen Einzelwerts."},
@@ -7914,7 +7938,9 @@ function initApp(){
   const SIG2 = 4;                        // bekannte Varianz der Grundgesamtheit -> sigma=2
 
   // Tabelle 36 (page_219): wichtige z-Quantile, gerundet wie im Skript
-  const Z_TABLE = {0.9:1.2816, 0.95:1.6449, 0.975:1.96, 0.99:2.3263, 0.995:2.5788};
+  // z-Quantile: mathematisch korrekte Werte. Das Skript druckt bei 0,995 den
+  // Druckfehler 2,5788; korrekt (und hier für die Testentscheidung genutzt) ist 2,5758.
+  const Z_TABLE = {0.9:1.2816, 0.95:1.6449, 0.975:1.96, 0.99:2.3263, 0.995:2.5758};
 
   // kritischer z-Wert (Skript rundet auf Tabellenwerte; sonst exakt über normalInv)
   function zCrit(p){ return (p in Z_TABLE) ? Z_TABLE[p] : null; }
@@ -8132,7 +8158,7 @@ function initApp(){
       // ---- Urteil ----
       verdict.innerHTML="";
       verdict.appendChild(stat(ctx, fmt.n(R.stat,4).replace(".",","), "Prüfgröße "+Q, "violet"));
-      verdict.appendChild(stat(ctx, (S.side==="left"?"−":"±")+fmt.n(R.crit,4).replace(".",","),
+      verdict.appendChild(stat(ctx, (S.side==="left"?"−":S.side==="right"?"+":"±")+fmt.n(R.crit,4).replace(".",","),
         "kritischer Wert", "blue"));
       verdict.appendChild(stat(ctx, R.reject?"H₀ ABLEHNEN":"H₀ nicht ablehnen",
         R.reject?"signifikant ✔":"nicht signifikant", R.reject?"good":"teal"));
@@ -8613,9 +8639,9 @@ function initApp(){
           {t:"p", html:"Der kritische Wert ist ein Quantil der Standardnormalverteilung, abgelesen über die kumulierte Wahrscheinlichkeit:"},
           {t:"formula", tex:"\\text{zweiseitig: } \\pm z_{1-0{,}5\\cdot\\alpha}\\quad\\text{rechts: } z_{1-\\alpha}\\quad\\text{links: } -z_{1-\\alpha}",
             caption:"kritische Werte je nach Richtung"},
-          {t:"table", caption:"Tabelle 36 — wichtige Quantile der Standardnormalverteilung (Skript-Formelsammlung)",
+          {t:"table", caption:"Tabelle 36 — wichtige Quantile der Standardnormalverteilung (Bornewasser-Hermes, 2023). Hinweis: Das Skript druckt bei p = 0,995 den Wert 2,5788 — ein Druckfehler; korrekt ist 2,5758.",
             headers:["kumulierte Wkt. \\(p\\)","0,9","0,95","0,975","0,99","0,995"],
-            rows:[["Quantil \\(z_p\\)","1,2816","1,6449","1,96","2,3263","2,5788"]]},
+            rows:[["Quantil \\(z_p\\)","1,2816","1,6449","1,96","2,3263","2,5758"]]},
 
           {t:"formula", tex:"\\text{Lehne } H_0 \\text{ ab, falls}\\quad |z| > z_{1-0{,}5\\cdot\\alpha}\\ \\ (\\text{zweiseitig})",
             caption:"Entscheidungsregel zweiseitig"},
@@ -8687,7 +8713,7 @@ function initApp(){
           ]},
 
           {t:"quote", source:"Skript, S. 222",
-            html:"„Bis auf die Standardabweichung stimmt die t-Statistik exakt mit der z-Statistik überein (Bortz & Schuster, 2010, S. 118). … Die einzige Neuerung befindet sich im Nenner der Prüfgröße. Dort müssen wir nun die Standardabweichung \\(s\\) auf Basis der Stichprobe berechnen.\""},
+            html:"„Bis auf die Standardabweichung stimmt die t-Statistik exakt mit der z-Statistik überein (Bortz & Schuster, 2010, S. 118). … Die einzige Neuerung befindet sich im Nenner der Prüfgröße. Dort müssen wir nun die Standardabweichung auf Basis der Stichprobe berechnen.\""},
 
           {t:"h", text:"Die Formeln", icon:"🧮"},
           {t:"formula", tex:"t=\\sqrt{n}\\cdot\\dfrac{\\bar{x}-\\mu_0}{s}",
@@ -8776,7 +8802,7 @@ function initApp(){
         explain:"Bekanntes \\(\\sigma^2\\) → z-Test (Normalverteilung). Unbekanntes \\(\\sigma^2\\) → t-Test (t-Verteilung)." },
 
       { q:"Beim zweiseitigen z-Test mit α = 0,05: Wie groß ist der kritische Wert?",
-        options:["1,6449","1,96","2,776","2,5788"],
+        options:["1,6449","1,96","2,776","2,5758"],
         correct:1,
         explain:"\\(z_{1-0{,}5\\cdot 0{,}05}=z_{0{,}975}=1{,}96\\). Die 5 % verteilen sich auf zwei Ränder à 2,5 %." },
 
@@ -8866,7 +8892,7 @@ function zTableEl(){
     for(let c=0;c<10;c++){ r.push(fmt.n(Stats.normalCdf(z+c/100),4)); }
     rows.push(r);
   }
-  return renderTable({headers,rows,compact:true,caption:"Φ(z) = P(Z ≤ z), berechnet (stimmt mit der Skript-Tabelle überein)."});
+  return renderTable({headers,rows,compact:true,caption:"Φ(z) = P(Z ≤ z), exakt berechnet. Hinweis: korrigiert den Druckfehler der Skript-Tabelle bei z = 1,95 (Skript: 0,9929; korrekt: 0,9744)."});
 }
 function quantileTableEl(){
   const ps=[0.90,0.95,0.975,0.99,0.995];
@@ -8877,7 +8903,8 @@ function quantileTableEl(){
       ["0,975","1,9600","KI 95 % (zweiseitig)"],
       ["0,99","2,3263","KI 98 % / einseitig 99 %"],
       ["0,995","2,5758","KI 99 % (zweiseitig)"]
-    ]});
+    ],
+    caption:"z-Quantile, exakt berechnet. Hinweis: Bei p = 0,995 druckt das Skript 2,5788 — das ist ein Druckfehler; mathematisch korrekt (und hier verwendet) ist 2,5758."});
 }
 function tTableEl(){
   const cols=[0.90,0.95,0.975,0.99,0.995];

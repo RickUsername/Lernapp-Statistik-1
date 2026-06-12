@@ -597,7 +597,7 @@
             html:"Du berechnest die Abweichungen gegen \\(\\bar{x}\\), das du <b>selbst aus denselben Daten</b> bestimmt hast. Der Mittelwert sitzt damit „verdächtig nah“ an den Daten — die Streuung sieht künstlich kleiner aus. Das kostet einen <b>Freiheitsgrad</b>. Teilen durch \\(n\\) würde die Varianz systematisch zu klein schätzen (verzerrt); die Korrektur \\(n-1\\) macht den Schätzer erwartungstreu."},
 
           {t:"warn", title:"Stolperfalle: s erbt die Bravheit von s² NICHT", tag:"wichtig",
-            html:"\\(s^2\\) ist erwartungstreu <i>und</i> konsistent für \\(\\sigma^2\\). Aber: Die Standardabweichung \\(s=\\sqrt{s^2}\\) gilt <b>weder als erwartungstreuer noch als konsistenter</b> Schätzer für \\(\\sigma\\). Wurzelziehen ist eine nichtlineare Operation und verzerrt den Erwartungswert. Beliebte Klausurfalle! <span class='muted'>(Skript S. 186)</span>"},
+            html:"\\(s^2\\) ist erwartungstreu <i>und</i> konsistent für \\(\\sigma^2\\). Aber: Die Standardabweichung \\(s=\\sqrt{s^2}\\) gilt <b>weder als erwartungstreuer noch als konsistenter</b> Schätzer für \\(\\sigma\\). Wurzelziehen ist eine nichtlineare Operation und verzerrt den Erwartungswert. Beliebte Klausurfalle! <span class='muted'>(So im Skript, S. 186 — für das Modul die maßgebliche Darstellung. Mathematische Anmerkung: \\(s\\) ist zwar nicht erwartungstreu, aber sehr wohl konsistent für \\(\\sigma\\).)</span>"},
 
           {t:"aha", title:"Aha — der Dartpfeil-Vergleich",
             html:"<b>Erwartungstreue</b> = du triffst <i>im Schnitt</i> die Mitte (kein systematischer Drall nach links/rechts). <b>Konsistenz</b> = je mehr Pfeile du wirfst (größeres n), desto enger der Cluster um die Mitte. Ein Schätzer kann erwartungstreu sein und trotzdem mies streuen — deshalb braucht man <i>auch</i> ein ordentliches n."},
@@ -629,7 +629,7 @@
           {t:"quote", source:"Skript S. 184",
             html:"„Mit einer sog. Punktschätzung würde man nun einen konkreten Wert für den Mittelwert und die Streuung festlegen, welcher dann für die Grundgesamtheit Gültigkeit haben soll.“"},
 
-          {t:"p", html:"Skript-Fazit (S. 186): Die durchschnittliche Unternehmenszugehörigkeit wird auf Basis der Stichprobe auf <b>11 ± 3,21 Jahre</b> geschätzt."},
+          {t:"p", html:"Skript-Fazit (S. 187): Die durchschnittliche Unternehmenszugehörigkeit wird auf Basis der Stichprobe auf <b>11 ± 3,21 Jahre</b> geschätzt."},
 
           {t:"quote", source:"Skript S. 187",
             html:"„Der große Nachteil von Punktschätzern ist, dass man sich auf einen speziellen Wert … festlegt. Die Chance, dass unser wahrer Wert der Grundgesamtheit durchaus mal ein wenig abweicht, ist damit nicht so gering.“"},
@@ -703,10 +703,10 @@
           {t:"h", icon:"📊", text:"Quantil-Tabelle der Standardnormalverteilung"},
           {t:"table",
             headers:["Kumulierte W. p","0,9","0,95","0,975","0,99","0,995"],
-            rows:[["Quantil z_p","1,2816","1,6449","1,96","2,3263","2,5788"]],
-            caption:"Tabelle 34 (Skript S. 192). Für 95 %-KI: p = 1−α/2 = 0,975 ⇒ z = 1,96.",
+            rows:[["Quantil z_p","1,2816","1,6449","1,96","2,3263","2,5758"]],
+            caption:"Tabelle 34 (Skript S. 193). Für 95 %-KI: p = 1−α/2 = 0,975 ⇒ z = 1,96. Hinweis: Das Skript druckt bei p = 0,995 den Wert 2,5788 — ein Druckfehler; korrekt ist 2,5758.",
             compact:true, highlight:[0]},
-          {t:"p", html:"Faustregel: 90 % ⇒ z=1,6449 · 95 % ⇒ z=1,96 · 99 % ⇒ z=2,5788. Das t-Quantil \\(t_{7;0,975}=2{,}365\\) ist deutlich größer als 1,96 — der Grund für das breitere t-Intervall."},
+          {t:"p", html:"Faustregel: 90 % ⇒ z=1,6449 · 95 % ⇒ z=1,96 · 99 % ⇒ z=2,5758. Das t-Quantil \\(t_{7;0,975}=2{,}365\\) ist deutlich größer als 1,96 — der Grund für das breitere t-Intervall."},
 
           {t:"why", title:"Warum brauche ich das?",
             html:"„±3 %“ bei Wahlumfragen, Konfidenzbänder in medizinischen Studien, Toleranzbereiche in der Qualitätskontrolle — überall ist der wahre Wert unbekannt, und eine ehrliche Aussage braucht einen <b>Bereich mit Wahrscheinlichkeit</b> statt eines scheinpräzisen Einzelwerts."},

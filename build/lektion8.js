@@ -14,7 +14,9 @@
   const SIG2 = 4;                        // bekannte Varianz der Grundgesamtheit -> sigma=2
 
   // Tabelle 36 (page_219): wichtige z-Quantile, gerundet wie im Skript
-  const Z_TABLE = {0.9:1.2816, 0.95:1.6449, 0.975:1.96, 0.99:2.3263, 0.995:2.5788};
+  // z-Quantile: mathematisch korrekte Werte. Das Skript druckt bei 0,995 den
+  // Druckfehler 2,5788; korrekt (und hier für die Testentscheidung genutzt) ist 2,5758.
+  const Z_TABLE = {0.9:1.2816, 0.95:1.6449, 0.975:1.96, 0.99:2.3263, 0.995:2.5758};
 
   // kritischer z-Wert (Skript rundet auf Tabellenwerte; sonst exakt über normalInv)
   function zCrit(p){ return (p in Z_TABLE) ? Z_TABLE[p] : null; }
@@ -232,7 +234,7 @@
       // ---- Urteil ----
       verdict.innerHTML="";
       verdict.appendChild(stat(ctx, fmt.n(R.stat,4).replace(".",","), "Prüfgröße "+Q, "violet"));
-      verdict.appendChild(stat(ctx, (S.side==="left"?"−":"±")+fmt.n(R.crit,4).replace(".",","),
+      verdict.appendChild(stat(ctx, (S.side==="left"?"−":S.side==="right"?"+":"±")+fmt.n(R.crit,4).replace(".",","),
         "kritischer Wert", "blue"));
       verdict.appendChild(stat(ctx, R.reject?"H₀ ABLEHNEN":"H₀ nicht ablehnen",
         R.reject?"signifikant ✔":"nicht signifikant", R.reject?"good":"teal"));
@@ -713,9 +715,9 @@
           {t:"p", html:"Der kritische Wert ist ein Quantil der Standardnormalverteilung, abgelesen über die kumulierte Wahrscheinlichkeit:"},
           {t:"formula", tex:"\\text{zweiseitig: } \\pm z_{1-0{,}5\\cdot\\alpha}\\quad\\text{rechts: } z_{1-\\alpha}\\quad\\text{links: } -z_{1-\\alpha}",
             caption:"kritische Werte je nach Richtung"},
-          {t:"table", caption:"Tabelle 36 — wichtige Quantile der Standardnormalverteilung (Skript-Formelsammlung)",
+          {t:"table", caption:"Tabelle 36 — wichtige Quantile der Standardnormalverteilung (Bornewasser-Hermes, 2023). Hinweis: Das Skript druckt bei p = 0,995 den Wert 2,5788 — ein Druckfehler; korrekt ist 2,5758.",
             headers:["kumulierte Wkt. \\(p\\)","0,9","0,95","0,975","0,99","0,995"],
-            rows:[["Quantil \\(z_p\\)","1,2816","1,6449","1,96","2,3263","2,5788"]]},
+            rows:[["Quantil \\(z_p\\)","1,2816","1,6449","1,96","2,3263","2,5758"]]},
 
           {t:"formula", tex:"\\text{Lehne } H_0 \\text{ ab, falls}\\quad |z| > z_{1-0{,}5\\cdot\\alpha}\\ \\ (\\text{zweiseitig})",
             caption:"Entscheidungsregel zweiseitig"},
@@ -787,7 +789,7 @@
           ]},
 
           {t:"quote", source:"Skript, S. 222",
-            html:"„Bis auf die Standardabweichung stimmt die t-Statistik exakt mit der z-Statistik überein (Bortz & Schuster, 2010, S. 118). … Die einzige Neuerung befindet sich im Nenner der Prüfgröße. Dort müssen wir nun die Standardabweichung \\(s\\) auf Basis der Stichprobe berechnen.\""},
+            html:"„Bis auf die Standardabweichung stimmt die t-Statistik exakt mit der z-Statistik überein (Bortz & Schuster, 2010, S. 118). … Die einzige Neuerung befindet sich im Nenner der Prüfgröße. Dort müssen wir nun die Standardabweichung auf Basis der Stichprobe berechnen.\""},
 
           {t:"h", text:"Die Formeln", icon:"🧮"},
           {t:"formula", tex:"t=\\sqrt{n}\\cdot\\dfrac{\\bar{x}-\\mu_0}{s}",
@@ -876,7 +878,7 @@
         explain:"Bekanntes \\(\\sigma^2\\) → z-Test (Normalverteilung). Unbekanntes \\(\\sigma^2\\) → t-Test (t-Verteilung)." },
 
       { q:"Beim zweiseitigen z-Test mit α = 0,05: Wie groß ist der kritische Wert?",
-        options:["1,6449","1,96","2,776","2,5788"],
+        options:["1,6449","1,96","2,776","2,5758"],
         correct:1,
         explain:"\\(z_{1-0{,}5\\cdot 0{,}05}=z_{0{,}975}=1{,}96\\). Die 5 % verteilen sich auf zwei Ränder à 2,5 %." },
 

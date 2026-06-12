@@ -522,7 +522,8 @@
     var NA = null;
     var spalten = [
       {
-        label: "Geschlecht", ordnung: null,
+        label: "Geschlecht", ordnung: null, dichotom: false,
+        hinweis: "In dieser Stichprobe kommen nur zwei Ausprägungen vor (weiblich/männlich); das Merkmal hatte in der Befragung aber drei mögliche Ausprägungen (weiblich/männlich/divers) → nicht dichotom.",
         werte: ["weiblich", "weiblich", "weiblich", "weiblich", "männlich", "weiblich", "weiblich", "weiblich", "männlich", "männlich", "weiblich", "männlich", "weiblich", "weiblich", "weiblich", "weiblich", "weiblich", "weiblich", "männlich", "weiblich", "weiblich", "weiblich", "weiblich", "weiblich", "weiblich"]
       },
       {
@@ -558,9 +559,14 @@
           skala = "ordinal"; zusatz = "";
           grund = "Kategorien MIT sinnvoller Reihenfolge („" + sp.ordnung[0] + "“ … „" + sp.ordnung[sp.ordnung.length - 1] + "“), aber die Abstände sind nicht interpretierbar → ordinal.";
         } else {
-          skala = "nominal"; zusatz = distinct.length === 2 ? "dichotom" : "";
-          grund = "Kategorien ohne sinnvolle Reihenfolge → nominal" +
-            (distinct.length === 2 ? "; genau zwei Ausprägungen → dichotom." : ".");
+          // Dichotomie ist eine Eigenschaft des MERKMALS (zwei mögliche Ausprägungen),
+          // nicht der Stichprobe — daher per Flag, nicht aus distinct.length geschlossen.
+          skala = "nominal"; zusatz = sp.dichotom ? "dichotom" : "";
+          if (sp.dichotom) {
+            grund = "Kategorien ohne sinnvolle Reihenfolge → nominal; das Merkmal hat genau zwei mögliche Ausprägungen → dichotom.";
+          } else {
+            grund = "Kategorien ohne sinnvolle Reihenfolge → nominal." + (sp.hinweis ? " " + sp.hinweis : "");
+          }
         }
       } else {
         skala = "kardinal";
@@ -768,7 +774,7 @@
           { t: "def", term: "Grundgesamtheit", html: "Die Grundgesamtheit umfasst <b>alle</b> Merkmalsträger, die für die Studie in Frage kommen. Im Beispiel: alle deutschen Krankenhäuser." },
           { t: "def", term: "Stichprobe", html: "Die Stichprobe umfasst alle <b>tatsächlich untersuchten</b> Merkmalsträger. Sie sollte <b>repräsentativ</b> sein. Faustregel: Je größer die Stichprobe, desto präziser die Aussagen – aber eine große, nicht repräsentative Stichprobe nützt nichts." },
 
-          { t: "quote", html: "„Bei der Zusammensetzung der Stichprobe ist es von besonderer Bedeutung, dass die Merkmalsträger repräsentativ für die Grundgesamtheit sind.“", source: "Bornewasser-Hermes, 2022" },
+          { t: "quote", html: "„Bei der Zusammensetzung der Stichprobe ist es von besonderer Bedeutung, dass die Merkmalsträger repräsentativ für die Grundgesamtheit sind …“", source: "Bornewasser-Hermes, 2022" },
 
           { t: "sub", html: "Wie zieht man eine Stichprobe? Vier Arten" },
           {
@@ -822,7 +828,7 @@
               ["Anzahl freie Intensivbetten", "0, 1, 2, … (z. B. 20 vs. 10)", "kardinal, diskret"],
               ["Ausgaben (auf den Cent)", "beliebiger Geldbetrag", "kardinal, stetig"]
             ],
-            caption: "Vier Merkmale, drei Skalenniveaus – die Skala bestimmt, was man rechnen darf."
+            caption: "Sechs Merkmale, drei Skalenniveaus – die Skala bestimmt, was man rechnen darf."
           },
 
           { t: "warn", title: "Klassiker-Falle: Zahl ≠ metrisch", tag: "Klausur", html: "Eine Ausprägung in Zahlenform bedeutet <b>nicht automatisch</b> kardinal/metrisch! <b>Postleitzahl</b>, <b>Schulnote</b> und <b>Trikotnummer</b> sind Zahlen, aber nominal bzw. ordinal. Das ist der häufigste Klausurfehler zu dieser Lektion." },

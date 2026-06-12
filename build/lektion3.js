@@ -1,26 +1,28 @@
 /* ===========================================================================
    LEKTION 3 — Auswertungsmethoden zweidimensionaler Daten
-   BSTA01-02 "Statistik" (Prof. Dr. Heike Bornewasser-Hermes, 2022), S. 67–100.
-   Alle Zahlen gegen die Seitenbilder page_067–page_100 verifiziert.
+   BSTA01-02 "Statistik" (Prof. Dr. Heike Bornewasser-Hermes, 2022), S. 66–100.
+   Alle Zahlen gegen die Seitenbilder page_066–page_100 verifiziert.
    =========================================================================== */
 (function(){
   "use strict";
 
   /* ----- lokale Helfer (kollidieren dank IIFE nie mit anderen Lektionen) ----- */
 
-  // Eltern-Leitbeispiel (Tabelle 28, page_092): Größe Mutter (x) / Vater (y), n=12.
+  // Eltern-Leitbeispiel (Tabelle 27 Ausgangsdaten / Tabelle 28 Hilfstabelle):
+  // Alter Mutter (x) / Alter Vater (y), n=12.
   // Reproduziert x̄=52, ȳ=57, Σ(x−x̄)(y−ȳ)=220, Σ(x−x̄)²=210, Σ(y−ȳ)²=546, r≈0,650.
   const ELTERN_X = [56,49,48,46,47,56,57,53,58,54,47,53];
   const ELTERN_Y = [60,55,46,52,56,51,71,60,61,58,49,65];
 
   // Interpretations-Etikett für |Zusammenhangsmaß| in [0,1].
+  // Einteilung exakt wie im Skript (S. 75, rechtsseitig geschlossene Intervalle):
+  // 0–0,2 kein · 0,2–0,4 schwach · 0,4–0,6 mittel · 0,6–0,8 stark · 0,8–1 sehr stark.
   function staerke(r){
     const a = Math.abs(r);
-    if(a < 0.05) return "praktisch kein";
-    if(a < 0.2)  return "sehr schwacher";
-    if(a < 0.4)  return "schwacher";
-    if(a < 0.6)  return "mittlerer";
-    if(a < 0.8)  return "starker";
+    if(a <= 0.2) return "kein";
+    if(a <= 0.4) return "schwacher";
+    if(a <= 0.6) return "mittlerer";
+    if(a <= 0.8) return "starker";
     return "sehr starker";
   }
 
@@ -447,7 +449,7 @@
 
     // feste, anschauliche Datensätze
     const dPlus1 = [[1,2],[2,4],[3,6],[4,8],[5,10],[6,12]];            // r=+1
-    const dNeg1  = [[10,100],[20,80],[30,60],[40,40],[50,20],[60,0]]; // r=−1 (Abb. 13, page_096)
+    const dNeg1  = [[10,100],[20,80],[30,60],[40,40],[50,20],[60,0]]; // r=−1 (Abb. 13, page_093)
     const dPos03 = [[1,5],[2,6],[3,3],[4,2],[5,4],[6,2],[7,8],[8,7]];  // r=+0,30
     const dPos065= ELTERN_X.slice(0,12).map((x,i)=>[x,ELTERN_Y[i]]);  // Eltern, r≈0,65
     const dNeg05 = [[1,8],[2,8],[3,2],[4,3],[5,6],[6,2],[7,3],[8,5]];  // r=−0,50
@@ -801,7 +803,7 @@
           {t:"formula", tex:"K=\\sqrt{\\frac{\\chi^2}{\\chi^2+n}}", caption:"Kontingenzkoeffizient C (= K)"},
           {t:"p", html:"C hat <i>immer noch</i> einen Haken: Es erreicht die 1 nie ganz, sondern nur ein \\(K_{max}<1\\), das von der Tabellengröße abhängt. Deshalb teilen wir durch \\(K_{max}\\) und bekommen das schöne, auf \\([0,1]\\) normierte <b>korrigierte C*</b>."},
           {t:"formula", tex:"K^{*}=\\frac{K}{K_{max}},\\qquad K_{max}=\\sqrt{\\frac{M-1}{M}},\\qquad M=\\min\\{I,J\\}", caption:"korrigierter Kontingenzkoeffizient C* (= K*)"},
-          {t:"quote", html:"Da der Kontingenzkoeffizient den Wert 1 nie erreichen kann, wird er korrigiert.", source:"Bornewasser-Hermes, 2022 (sinngemäß)"},
+          {t:"quote", html:"Der Kontingenzkoeffizient kann seinen Maximalwert 1 nicht erreichen; sein Höchstwert hängt von der Tabellengröße (Zahl der Ausprägungen) ab. Um einen auf \\([0,1]\\) vergleichbaren Wert zu erhalten, wird er durch diesen Höchstwert \\(K_{max}\\) korrigiert.", source:"Bornewasser-Hermes, 2022 (sinngemäß)"},
 
           {t:"aha", title:"Was wäre, wenn nichts zusammenhinge?",
             html:"Die erwarteten Häufigkeiten sind die „Wenn alles Zufall wäre“-Welt — die langweiligste aller möglichen Tabellen. χ² misst nur, <b>wie weit die echte Welt von dieser Zufallswelt abweicht</b>. Kein Abstand → kein Zusammenhang."},
@@ -924,10 +926,10 @@
           {t:"aha", title:"Die vier Ecken des Tanzparketts",
             html:"Lege das Fadenkreuz \\((\\bar x,\\bar y)\\) in die Mitte der Punktwolke. Jeder Punkt im <b>rechten-oberen</b> oder <b>linken-unteren</b> Eck „stimmt für positiv“ (Produkt \\((x-\\bar x)(y-\\bar y)>0\\)), jeder im linken-oberen oder rechten-unteren „stimmt für negativ“. r ist das <b>normierte Abstimmungsergebnis</b> aller Punkte. Im Scatter-Widget unten siehst du die Quadranten farbig."},
 
-          {t:"h", text:"Leitbeispiel: Größe der Eltern (n = 12, Tabelle 28)", icon:"📏"},
-          {t:"p", html:"Untersucht wird der Zusammenhang zwischen der Körpergröße von <b>Mutter (X)</b> und <b>Vater (Y)</b> bei 12 Elternpaaren. Die Originaldaten:"},
+          {t:"h", text:"Leitbeispiel: Alter der Eltern (n = 12, Tabelle 27/28)", icon:"👪"},
+          {t:"p", html:"Untersucht wird der Zusammenhang zwischen dem <b>Alter der Mutter (X)</b> und dem <b>Alter des Vaters (Y)</b> bei 12 Elternpaaren junger Patient:innen. Die Originaldaten:"},
           {t:"table",
-            headers:["i","\\(x_i\\) (Mutter)","\\(y_i\\) (Vater)","\\(x_i-\\bar x\\)","\\(y_i-\\bar y\\)","Produkt","\\((x_i-\\bar x)^2\\)","\\((y_i-\\bar y)^2\\)"],
+            headers:["i","\\(x_i\\) (Alter Mutter)","\\(y_i\\) (Alter Vater)","\\(x_i-\\bar x\\)","\\(y_i-\\bar y\\)","Produkt","\\((x_i-\\bar x)^2\\)","\\((y_i-\\bar y)^2\\)"],
             rows:[
               ["1","56","60","4","3","12","16","9"],
               ["2","49","55","−3","−2","6","9","4"],
@@ -952,7 +954,7 @@
               "<b>Zähler</b> (Summe der Produkte): \\(\\sum(x_i-\\bar x)(y_i-\\bar y)=220\\).<br>"+
               "<b>Nenner:</b> \\(\\sqrt{\\sum(x_i-\\bar x)^2\\cdot\\sum(y_i-\\bar y)^2}=\\sqrt{210\\cdot 546}=\\sqrt{114660}\\approx 338{,}6\\).<br>"+
               "\\[r_{x,y}=\\frac{220}{\\sqrt{210\\cdot 546}}=\\frac{220}{338{,}6}\\approx \\mathbf{0{,}650}\\]"+
-              "<b>Ergebnis:</b> r ≈ 0,65 → <b>starker, positiver linearer Zusammenhang</b>: größere Mütter tendieren zu größeren Vätern (assortative Paarung)."},
+              "<b>Ergebnis:</b> r ≈ 0,65 → <b>starker, positiver linearer Zusammenhang</b>: Wenn die Mutter älter ist, so gilt dies in der Regel auch für den Vater und umgekehrt."},
 
           {t:"quote", html:"Der Korrelationskoeffizient nach Bravais-Pearson misst die Stärke und Richtung des linearen Zusammenhangs zwischen zwei metrisch skalierten Merkmalen.", source:"Bornewasser-Hermes, 2022 (sinngemäß)"},
 
@@ -995,7 +997,7 @@
               "<li>Geschlecht (nominal) × Lieblingsfarbe (nominal) → <b>Kontingenz</b> (χ², C, C*).</li>"+
               "<li>Schulnote (ordinal) × Zufriedenheit (ordinal) → <b>Spearman</b> \\(r_S\\).</li>"+
               "<li>Lernstunden (metrisch) × Note-als-Rang (ordinal) → schwächer = ordinal → <b>Spearman</b> \\(r_S\\).</li>"+
-              "<li>Größe Mutter (metrisch) × Größe Vater (metrisch) → <b>Bravais-Pearson</b> \\(r\\).</li>"+
+              "<li>Alter Mutter (metrisch) × Alter Vater (metrisch) → <b>Bravais-Pearson</b> \\(r\\).</li>"+
               "</ul>"},
 
           {t:"quote", html:"Bei der Wahl des geeigneten Zusammenhangsmaßes ist stets das niedrigere der beiden Skalenniveaus ausschlaggebend.", source:"Bornewasser-Hermes, 2022 (sinngemäß)"},
@@ -1007,10 +1009,10 @@
           {t:"def", term:"Scheinkorrelation",
             html:"Zwei Merkmale korrelieren nur, weil beide von einer gemeinsamen <b>dritten Größe</b> (Confounder) abhängen — z. B. Eisverkauf & Sonnenbrände, gemeinsame Ursache: Sonne/Temperatur."},
           {t:"def", term:"Nonsens-/Unsinnskorrelation",
-            html:"Ein rein zufälliger statistischer Zusammenhang <b>ohne jede</b> sachlogische Beziehung — der Klassiker: Storchenpopulation & Geburtenzahl."},
+            html:"Ein rein zufälliger statistischer Zusammenhang <b>ohne jede</b> sachlogische Beziehung und <b>ohne</b> gemeinsame dritte Größe — der Klassiker: die schrumpfende Zahl der Piraten und der Anstieg der globalen Durchschnittstemperatur. Beide verlaufen über die Jahrhunderte gegenläufig, ohne das Geringste miteinander zu tun zu haben."},
 
-          {t:"aha", title:"Der Storch bringt die Babys",
-            html:"In Regionen mit mehr Störchen werden tatsächlich mehr Babys geboren — die Korrelation ist real und hoch. Die Ursache ist aber die <b>Ländlichkeit</b>: viel Fläche → mehr Störche <i>und</i> mehr (kinderreiche) Familien. Ein perfektes Bild dafür, dass eine starke Korrelation eine Kausalität nur <b>vortäuschen</b> kann."},
+          {t:"aha", title:"Der Storch bringt die Babys — eine Scheinkorrelation",
+            html:"In Regionen mit mehr Störchen werden tatsächlich mehr Babys geboren — die Korrelation ist real und hoch. Die Ursache ist aber die <b>Ländlichkeit</b> als gemeinsame dritte Größe: viel Fläche → mehr Störche <i>und</i> mehr (kinderreiche) Familien. Damit ist es das Paradebeispiel einer <b>Scheinkorrelation</b> — eine starke Korrelation täuscht eine Kausalität nur <b>vor</b>."},
 
           {t:"quote", html:"Eine Korrelation darf nicht mit einer Kausalität verwechselt werden. Bei einer Scheinkorrelation wird der Zusammenhang durch eine dritte Variable verursacht.", source:"Bornewasser-Hermes, 2022 (sinngemäß)"},
 
@@ -1063,7 +1065,7 @@
       { q:"Mit Σ(x−x̄)(y−ȳ)=220, Σ(x−x̄)²=210, Σ(y−ȳ)²=546: Wie groß ist r?",
         options:["0,40","0,65","0,82","1,00"],
         correct:1,
-        explain:"r = 220/√(210·546) = 220/√114660 ≈ 220/338,6 ≈ 0,65 — starker positiver linearer Zusammenhang (Eltern-Größen)." },
+        explain:"r = 220/√(210·546) = 220/√114660 ≈ 220/338,6 ≈ 0,65 — starker positiver linearer Zusammenhang (Alter der Eltern)." },
 
       { q:"Ein Merkmal ist metrisch, das andere ordinal. Welche Maßzahl ist korrekt?",
         options:["Pearson r","Spearman \\(r_S\\)","Kontingenz C","Kovarianz"],

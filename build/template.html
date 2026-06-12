@@ -408,6 +408,7 @@ const Stats = (function(){
     const s = sortAsc(a), n = s.length, pos = n*p;
     if(Math.abs(pos-Math.round(pos))<1e-9){
       const k = Math.round(pos);                // 1-based
+      if(k<=0) return s[0];
       if(k>=n) return s[n-1];
       return (s[k-1]+s[k])/2;
     }
@@ -436,7 +437,8 @@ const Stats = (function(){
       const avg=(i+j)/2+1; for(let k=i;k<=j;k++) r[idx[k][1]]=avg; i=j+1; }
     return r;
   }
-  function covariance(x,y){const n=x.length,mx=mean(x),my=mean(y);let s=0;for(let i=0;i<n;i++)s+=(x[i]-mx)*(y[i]-my);return s/(n-1);}
+  // Kovarianz mit 1/n — konsistent mit der im Skript/Formelsammlung gelehrten Definition s_xy.
+  function covariance(x,y){const n=x.length,mx=mean(x),my=mean(y);let s=0;for(let i=0;i<n;i++)s+=(x[i]-mx)*(y[i]-my);return s/n;}
   function pearson(x,y){
     const n=x.length,mx=mean(x),my=mean(y);
     let sxy=0,sxx=0,syy=0;
@@ -541,13 +543,20 @@ const Stats = (function(){
   function tCdf(x,df){const xx=df/(df+x*x);const ib=0.5*betai(df/2,0.5,xx);return x>0?1-ib:ib;}
   function tQuantile(p,df){ // bisection on tCdf
     if(p<=0)return -Infinity; if(p>=1)return Infinity;
-    let lo=-60,hi=60;
+    // Grenzen weit genug, damit auch t(0,995; df=1)=63,657 (und größere) nicht
+    // an die Intervallgrenze geklemmt werden. 200 Halbierungen → Maschinengenauigkeit.
+    let lo=-1e6,hi=1e6;
     for(let i=0;i<200;i++){const m=(lo+hi)/2; (tCdf(m,df)<p)?lo=m:hi=m;}
     return (lo+hi)/2;
   }
-  const binomPmf=(k,n,p)=> (k<0||k>n)?0: Math.exp(gammaln(n+1)-gammaln(k+1)-gammaln(n-k+1)+k*Math.log(p)+(n-k)*Math.log(1-p));
+  const binomPmf=(k,n,p)=>{
+    if(k<0||k>n) return 0;
+    if(p<=0) return k===0?1:0;   // 0·log(0) wäre NaN — Randfall p=0 sauber abfangen
+    if(p>=1) return k===n?1:0;   // dito p=1
+    return Math.exp(gammaln(n+1)-gammaln(k+1)-gammaln(n-k+1)+k*Math.log(p)+(n-k)*Math.log(1-p));
+  };
   function binomCdf(k,n,p){let s=0;for(let i=0;i<=k;i++)s+=binomPmf(i,n,p);return s;}
-  const poissonPmf=(k,l)=> k<0?0: Math.exp(-l+k*Math.log(l)-gammaln(k+1));
+  const poissonPmf=(k,l)=> (k<0)?0: (l<=0? (k===0?1:0): Math.exp(-l+k*Math.log(l)-gammaln(k+1)));
   function poissonCdf(k,l){let s=0;for(let i=0;i<=k;i++)s+=poissonPmf(i,l);return s;}
   const expPdf=(x,l)=> x<0?0: l*Math.exp(-l*x);
   const expCdf=(x,l)=> x<0?0: 1-Math.exp(-l*x);
@@ -694,19 +703,26 @@ function loadProgress(){ try{return JSON.parse(localStorage.getItem(STORE_KEY))|
 function saveProgress(){ try{localStorage.setItem(STORE_KEY,JSON.stringify(progress));}catch(e){} }
 function markDone(secId,val){ if(val)progress.done[secId]=1; else delete progress.done[secId]; saveProgress(); updateProgressUI(); }
 function isDone(secId){return !!progress.done[secId];}
-function saveQuiz(lid,score,total){ progress.quiz[lid]={score,total}; saveProgress(); updateProgressUI(); }
+function saveQuiz(lid,score,total){
+  const prev=progress.quiz[lid];
+  // Besten Versuch behalten: einen schlechteren Score NICHT über einen besseren schreiben.
+  if(!prev || score/total >= prev.score/prev.total){ progress.quiz[lid]={score,total}; }
+  saveProgress(); updateProgressUI();
+}
+// Ein Quiz zählt erst als bestanden (und damit als Fortschritt), wenn ≥ 80 % erreicht sind.
+function quizPassed(lid){ const q=progress.quiz[lid]; return !!(q && q.total>0 && q.score/q.total>=0.8); }
 
 function lessonSections(L){return L.sections;}
 function lessonProgress(L){
   const secs=lessonSections(L); const done=secs.filter(s=>isDone(L.id+"-"+s.idx)).length;
   let total=secs.length, hit=done;
-  if(L.quiz&&L.quiz.length){ total+=1; if(progress.quiz[L.id]) hit+=1; }
+  if(L.quiz&&L.quiz.length){ total+=1; if(quizPassed(L.id)) hit+=1; }
   return total? hit/total : 0;
 }
 function overallProgress(){
   let t=0,h=0;
   LESSONS.forEach(L=>{const secs=lessonSections(L);t+=secs.length;h+=secs.filter(s=>isDone(L.id+"-"+s.idx)).length;
-    if(L.quiz&&L.quiz.length){t+=1;if(progress.quiz[L.id])h+=1;}});
+    if(L.quiz&&L.quiz.length){t+=1;if(quizPassed(L.id))h+=1;}});
   return t? h/t : 0;
 }
 
@@ -971,7 +987,7 @@ function buildSidebar(){
       list.appendChild(it);
     });
     if(L.quiz&&L.quiz.length){
-      const it=el("div",{class:"section-item quizrow"+(progress.quiz[L.id]?" done":""),id:"si-quiz-"+L.id,
+      const it=el("div",{class:"section-item quizrow"+(quizPassed(L.id)?" done":""),id:"si-quiz-"+L.id,
         onclick:()=>{location.hash="#/quiz/"+L.id; closeMobile();}});
       it.appendChild(el("span",{class:"snum"},"🧠"));
       it.appendChild(el("span",{class:"stit"},"Quiz"+(progress.quiz[L.id]?" ("+progress.quiz[L.id].score+"/"+progress.quiz[L.id].total+")":"")));
@@ -1004,7 +1020,7 @@ function updateProgressUI(){
     if(ring){const c=2*Math.PI*14;ring.style.strokeDashoffset=c*(1-p);}
     L.sections.forEach(s=>{const it=$("#si-"+L.id+"-"+s.idx);if(it)it.classList.toggle("done",isDone(L.id+"-"+s.idx));});
     if(L.quiz&&L.quiz.length){const qi=$("#si-quiz-"+L.id);
-      if(qi){qi.classList.toggle("done",!!progress.quiz[L.id]);
+      if(qi){qi.classList.toggle("done",quizPassed(L.id));
         qi.querySelector(".stit").textContent="Quiz"+(progress.quiz[L.id]?" ("+progress.quiz[L.id].score+"/"+progress.quiz[L.id].total+")":"");}}
   });
 }
@@ -1101,7 +1117,7 @@ function zTableEl(){
     for(let c=0;c<10;c++){ r.push(fmt.n(Stats.normalCdf(z+c/100),4)); }
     rows.push(r);
   }
-  return renderTable({headers,rows,compact:true,caption:"Φ(z) = P(Z ≤ z), berechnet (stimmt mit der Skript-Tabelle überein)."});
+  return renderTable({headers,rows,compact:true,caption:"Φ(z) = P(Z ≤ z), exakt berechnet. Hinweis: korrigiert den Druckfehler der Skript-Tabelle bei z = 1,95 (Skript: 0,9929; korrekt: 0,9744)."});
 }
 function quantileTableEl(){
   const ps=[0.90,0.95,0.975,0.99,0.995];
@@ -1112,7 +1128,8 @@ function quantileTableEl(){
       ["0,975","1,9600","KI 95 % (zweiseitig)"],
       ["0,99","2,3263","KI 98 % / einseitig 99 %"],
       ["0,995","2,5758","KI 99 % (zweiseitig)"]
-    ]});
+    ],
+    caption:"z-Quantile, exakt berechnet. Hinweis: Bei p = 0,995 druckt das Skript 2,5788 — das ist ein Druckfehler; mathematisch korrekt (und hier verwendet) ist 2,5758."});
 }
 function tTableEl(){
   const cols=[0.90,0.95,0.975,0.99,0.995];

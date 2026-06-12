@@ -755,7 +755,7 @@
 
           {t:"formula", tex:"P(A)=\\frac{\\text{Anzahl der Ergebnisse in } A}{\\text{Anzahl der Ergebnisse in } \\Omega}=\\frac{|A|}{|\\Omega|}", caption:"Laplace-Wahrscheinlichkeit: günstige durch mögliche"},
 
-          {t:"quote", html:"Beim Würfel hat demnach jede Seite die gleiche Wahrscheinlichkeit in Höhe von 1/6, dass sie gewürfelt wird.", source:"BSTA01-02, S. 131"},
+          {t:"quote", html:"Beim Würfel hat demnach jede Seite die gleiche Wahrscheinlichkeit in Höhe von 1/6, dass sie gewürfelt wird.", source:"BSTA01-02, S. 132"},
 
           {t:"sub", text:"Die Axiome (Spielregeln jeder Wahrscheinlichkeit)"},
           {t:"formula", tex:"P(A)\\ge 0 \\qquad P(\\Omega)=1 \\qquad 0\\le P(A)\\le 1", caption:"Nichtnegativität · Normierung · Wertebereich"},

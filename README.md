@@ -27,8 +27,10 @@ Unterkapitel**.
   Histogramm-/Boxplot-Builder, Korrelations- & Regressions-Scatter (mit Drag),
   Kontingenz-/χ²-Rechner, Würfel- & Bayes-Simulationen, Normal-/Binomial-/Poisson-Explorer,
   Konfidenzintervall-Simulation und ein Hypothesentest-Wizard.
-- **Formeln** sauber via MathJax; eigene **Formelsammlung** inkl. der z- und t-Tabellen aus
-  dem Skript (numerisch berechnet, deckungsgleich mit der Skript-Tabelle).
+- **Formeln** sauber via MathJax; eigene **Formelsammlung** inkl. der z- und t-Tabellen
+  (numerisch exakt berechnet). Sie stimmen mit der Skript-Tabelle überein – mit zwei bewusst
+  korrigierten Druckfehlern des Skripts (Φ(1,95) = 0,9744 statt 0,9929; z₀,₉₉₅ = 2,5758 statt
+  2,5788), jeweils per Hinweis an der Tabelle ausgewiesen.
 - **Quiz** pro Lektion (Multiple-Choice, sofortiges Feedback, „bestanden" ab 80 %).
 - **Lernfortschritt** wird lokal im Browser gespeichert (`localStorage`) — pro Unterkapitel
   und Quiz, mit Fortschrittsanzeige in der Seitenleiste und oben.

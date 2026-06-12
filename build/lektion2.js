@@ -244,7 +244,7 @@
 
           {t:"aha", title:"Höhe lügt, Fläche sagt die Wahrheit", html:"Beim Balkendiagramm zählt die <b>Höhe</b>, beim Histogramm die <b>Fläche</b>. Die schmale Klasse \\((45;50]\\) ist nur 5 Jahre breit, hat aber die meisten Personen (6). Würde man nur die Höhe (rel. Häufigkeit) zeichnen, sähe sie unwichtig aus. Über die <b>Dichte</b> (0,063 – mit Abstand die höchste) wird sie korrekt zur Spitze. Wie auf einer Landkarte: ein winziges, dicht besiedeltes Bundesland kann mehr Einwohner haben als ein riesiges, leeres."},
 
-          {t:"quote", html:"Die Fläche eines jeden Rechtecks zeichnet sich dadurch aus, dass sie die relative Häufigkeit der entsprechenden Klasse widerspiegelt. Damit muss die gesamte Fläche unter dem Histogramm 1 sein.", source:"BSTA01-02, S.41"},
+          {t:"quote", html:"Die Fläche eines jeden Rechtecks zeichnet sich dadurch aus, dass sie die relative Häufigkeit der entsprechenden Klasse widerspiegelt. Damit muss die gesamte Fläche unter dem Histogramm 1 sein.", source:"BSTA01-02, S.42"},
 
           {t:"p", html:"Kontrolle: Klasse 3 hat Breite 5 · Dichte 0,063 ≈ 0,316 ≈ 6/19. Summiert man alle Rechteckflächen, kommt 1 heraus. <b>Das</b> ist der Sinn der Dichte."},
 
@@ -307,7 +307,7 @@
           {t:"p", html:"Sortiere aufsteigend zu \\(x_{(1)},\\dots,x_{(n)}\\). Berechne die <b>Position</b> \\(n\\cdot p\\). Dann gibt es zwei Fälle:"},
           {t:"formula", tex:"x_p=\\begin{cases}x_{(\\lceil n\\,p\\rceil)} & \\text{falls } n\\,p \\text{ nicht ganzzahlig (aufrunden!)}\\\\[6pt] \\dfrac{x_{(n p)}+x_{(n p+1)}}{2} & \\text{falls } n\\,p \\text{ ganzzahlig (Mittel zweier Stellen)}\\end{cases}", caption:"Quantil aus der Urliste"},
 
-          {t:"aha", title:"Den halben Menschen gibt es nicht", html:"Bei 25 Werten und 50 % ist die Position \\(25\\cdot0{,}5=12{,}5\\). Es gibt aber keinen halben Befragten – also rundet man auf und nimmt den 13. Werts. Nur wenn die Position glatt aufgeht (z.B. \\(24\\cdot0{,}5=12\\)), nimmt man fairerweise das Mittel aus dem 12. und 13. Wert."},
+          {t:"aha", title:"Den halben Menschen gibt es nicht", html:"Bei 25 Werten und 50 % ist die Position \\(25\\cdot0{,}5=12{,}5\\). Es gibt aber keinen halben Befragten – also rundet man auf und nimmt den 13. Wert. Nur wenn die Position glatt aufgeht (z.B. \\(24\\cdot0{,}5=12\\)), nimmt man fairerweise das Mittel aus dem 12. und 13. Wert."},
 
           {t:"example", title:"Alter (kardinal, n = 19) — sauberster Fall", html:
             "Sortiert: 15; 16; 17; 20; 26; 35; 35; 39; 44; <b>47</b>; 47; 48; 48; 49; <b>50</b>; 52; 55; 56; 68<br>"+
@@ -321,7 +321,7 @@
             "• \\(25\\cdot0{,}5=12{,}5\\) → 13. Stelle → \\(x_{0,5}=1\\).<br>"+
             "• \\(25\\cdot0{,}25=6{,}25\\) → 7. Stelle → \\(x_{0,25}=1\\).<br>"+
             "• \\(25\\cdot0{,}75=18{,}75\\) → 19. Stelle → \\(x_{0,75}=1\\).<br>"+
-            "Alle drei sind 1, „weil diese Ausprägung besonders häufig vorkommt“."},
+            "Alle drei sind 1, „weil diese Ausprägung besonders häufig im Datensatz vorkommt“."},
 
           {t:"example", title:"Zufriedenheit (ordinal, n = 24) — der knifflige Fall", html:
             "Sortiert best→schlecht: sg; g×12; b×9; a×2.<br>"+
@@ -485,7 +485,7 @@
 
           /* ---------- WIDGET 6: Boxplot-Generator ---------- */
           {t:"widget", title:"Boxplot-Generator — mit Hover", icon:"📦",
-            hint:"Box = Interquartilsabstand, Linie = Median, Whisker = Min/Max. Fahre mit der Maus über die Elemente.",
+            hint:"Box = Interquartilsabstand, Linie = Median, Whisker = Min/Max. Fahre mit der Maus über die Elemente. <i>Der Boxplot wird im IU-Skript nicht behandelt; hier nur als Ergänzung, weil er IQR und Median anschaulich zusammenführt.</i>",
             render:renderBoxplot}
         ]
       }
