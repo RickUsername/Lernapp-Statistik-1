@@ -804,7 +804,7 @@ function renderWidget(b){
   if(b.hint) body.appendChild(el("p",{class:"widget-hint",html:b.hint}));
   const mount=el("div"); body.appendChild(mount); card.appendChild(body);
   // defer render until in DOM
-  const ctx={el,Stats,Plot,fmt,makeChart,onCleanup,PAL,Chart:window.Chart,typeset:()=>typeset(mount),clamp,range,parseNums,niceTicks};
+  const ctx={el,Stats,Plot,fmt,makeChart,onCleanup,PAL,Chart:window.Chart,typeset:()=>typeset(mount),clamp,range,parseNums,niceTicks,shuffle};
   queueMicrotask(()=>{ try{ if(typeof b.render==="function") b.render(mount,ctx); }
                        catch(e){ mount.appendChild(el("p",{class:"muted"},"⚠️ Widget-Fehler: "+e.message)); console.error("Widget",b.title,e);} });
   return card;
@@ -1123,6 +1123,10 @@ function initApp(){
       }
     ];
 
+    // Kartenreihenfolge einmalig mischen, damit die richtige Antwort nicht
+    // in fester Reihenfolge steht (Antworten index-basiert → nur hier mischen).
+    ctx.shuffle(cards);
+
     var wrap = E("div");
     var score = E("div", { class: "readout", style: { marginBottom: "10px" } });
     var answered = {};
@@ -1212,6 +1216,13 @@ function initApp(){
       kardinal: "kardinal (metrisch)"
     };
 
+    // Reihenfolge der Merkmale mischen, damit die richtige Antwort nicht
+    // in einer festen Spalte steht (erst alle nominal, dann ordinal …).
+    ctx.shuffle(items);
+    // Button-Reihenfolge einmal pro Aufruf mischen (für alle Zeilen gleich),
+    // damit nicht immer „nominal“ links steht.
+    var chipOrder = ctx.shuffle(["nominal", "ordinal", "kardinal"]);
+
     var wrap = E("div");
     var score = E("div", { class: "readout", style: { marginBottom: "12px" } });
     var assigned = {}; // index -> gewählte skala
@@ -1254,7 +1265,7 @@ function initApp(){
       var fb = E("div", { style: { marginTop: "8px", fontSize: ".9em", display: "none" } });
       fbList.push(fb);
 
-      ["nominal", "ordinal", "kardinal"].forEach(function (sk) {
+      chipOrder.forEach(function (sk) {
         var chip = E("button", { class: "chip", text: labels[sk] });
         chip.addEventListener("click", function () {
           assigned[i] = sk;
@@ -1347,6 +1358,14 @@ function initApp(){
         ]
       }
     };
+
+    // Fragen und Antwortoptionen jedes Modus EINMALIG mischen. Antworten sind
+    // index-basiert (key=mode:i), daher nur hier beim Aufbau mischen – nicht in
+    // renderList, sonst würden gespeicherte Antworten falschen Fragen zugeordnet.
+    Object.keys(modi).forEach(function (mk) {
+      ctx.shuffle(modi[mk].fragen);
+      ctx.shuffle(modi[mk].opts);
+    });
 
     var current = "gs";
     var answered = {};
@@ -1546,6 +1565,11 @@ function initApp(){
       { t: "Wir prüfen die Hypothese „Uni-Kliniken haben einen größeren Einzugsbereich“.", dim: "analyse", l: "infer", w: "Schluss von der Stichprobe auf die Grundgesamtheit per Hypothese → Inferenzstatistik." },
       { t: "Erste Analysen zu Beginn der Corona-Pandemie auf völlig neuem Gebiet.", dim: "analyse", l: "explo", w: "Erkundung eines unerforschten Bereichs → explorative Statistik." }
     ];
+
+    // Szenarien-Reihenfolge und Antwortoptionen je Dimension einmalig mischen
+    // (einmalige Darstellung, Antworten index-basiert → nur hier mischen).
+    ctx.shuffle(szenarien);
+    Object.keys(dimensionen).forEach(function (dk) { ctx.shuffle(dimensionen[dk].opts); });
 
     var t1answered = {};
     var t1score = E("div", { class: "readout", style: { marginBottom: "10px" } });

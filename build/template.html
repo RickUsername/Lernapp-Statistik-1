@@ -804,7 +804,7 @@ function renderWidget(b){
   if(b.hint) body.appendChild(el("p",{class:"widget-hint",html:b.hint}));
   const mount=el("div"); body.appendChild(mount); card.appendChild(body);
   // defer render until in DOM
-  const ctx={el,Stats,Plot,fmt,makeChart,onCleanup,PAL,Chart:window.Chart,typeset:()=>typeset(mount),clamp,range,parseNums,niceTicks};
+  const ctx={el,Stats,Plot,fmt,makeChart,onCleanup,PAL,Chart:window.Chart,typeset:()=>typeset(mount),clamp,range,parseNums,niceTicks,shuffle};
   queueMicrotask(()=>{ try{ if(typeof b.render==="function") b.render(mount,ctx); }
                        catch(e){ mount.appendChild(el("p",{class:"muted"},"⚠️ Widget-Fehler: "+e.message)); console.error("Widget",b.title,e);} });
   return card;

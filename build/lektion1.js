@@ -44,6 +44,10 @@
       }
     ];
 
+    // Kartenreihenfolge einmalig mischen, damit die richtige Antwort nicht
+    // in fester Reihenfolge steht (Antworten index-basiert → nur hier mischen).
+    ctx.shuffle(cards);
+
     var wrap = E("div");
     var score = E("div", { class: "readout", style: { marginBottom: "10px" } });
     var answered = {};
@@ -133,6 +137,13 @@
       kardinal: "kardinal (metrisch)"
     };
 
+    // Reihenfolge der Merkmale mischen, damit die richtige Antwort nicht
+    // in einer festen Spalte steht (erst alle nominal, dann ordinal …).
+    ctx.shuffle(items);
+    // Button-Reihenfolge einmal pro Aufruf mischen (für alle Zeilen gleich),
+    // damit nicht immer „nominal“ links steht.
+    var chipOrder = ctx.shuffle(["nominal", "ordinal", "kardinal"]);
+
     var wrap = E("div");
     var score = E("div", { class: "readout", style: { marginBottom: "12px" } });
     var assigned = {}; // index -> gewählte skala
@@ -175,7 +186,7 @@
       var fb = E("div", { style: { marginTop: "8px", fontSize: ".9em", display: "none" } });
       fbList.push(fb);
 
-      ["nominal", "ordinal", "kardinal"].forEach(function (sk) {
+      chipOrder.forEach(function (sk) {
         var chip = E("button", { class: "chip", text: labels[sk] });
         chip.addEventListener("click", function () {
           assigned[i] = sk;
@@ -268,6 +279,14 @@
         ]
       }
     };
+
+    // Fragen und Antwortoptionen jedes Modus EINMALIG mischen. Antworten sind
+    // index-basiert (key=mode:i), daher nur hier beim Aufbau mischen – nicht in
+    // renderList, sonst würden gespeicherte Antworten falschen Fragen zugeordnet.
+    Object.keys(modi).forEach(function (mk) {
+      ctx.shuffle(modi[mk].fragen);
+      ctx.shuffle(modi[mk].opts);
+    });
 
     var current = "gs";
     var answered = {};
@@ -467,6 +486,11 @@
       { t: "Wir prüfen die Hypothese „Uni-Kliniken haben einen größeren Einzugsbereich“.", dim: "analyse", l: "infer", w: "Schluss von der Stichprobe auf die Grundgesamtheit per Hypothese → Inferenzstatistik." },
       { t: "Erste Analysen zu Beginn der Corona-Pandemie auf völlig neuem Gebiet.", dim: "analyse", l: "explo", w: "Erkundung eines unerforschten Bereichs → explorative Statistik." }
     ];
+
+    // Szenarien-Reihenfolge und Antwortoptionen je Dimension einmalig mischen
+    // (einmalige Darstellung, Antworten index-basiert → nur hier mischen).
+    ctx.shuffle(szenarien);
+    Object.keys(dimensionen).forEach(function (dk) { ctx.shuffle(dimensionen[dk].opts); });
 
     var t1answered = {};
     var t1score = E("div", { class: "readout", style: { marginBottom: "10px" } });
