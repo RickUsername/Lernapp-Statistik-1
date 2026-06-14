@@ -853,9 +853,21 @@ function sectionNav(L,sIdx){
   return nav;
 }
 
+// Fisher-Yates: mischt ein Array in-place und gibt es zurück.
+function shuffle(a){ for(let i=a.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); const t=a[i]; a[i]=a[j]; a[j]=t; } return a; }
+// Baut aus einer Frage ein gemischtes Render-Modell: Optionen werden neu
+// angeordnet und der korrekte Index entsprechend remappt.
+function shuffleQuestion(q){
+  const order=shuffle(q.options.map((_,i)=>i));
+  return {q:q.q, explain:q.explain, options:order.map(i=>q.options[i]), correct:order.indexOf(q.correct)};
+}
+
 function viewQuiz(L){
   cleanupView();
   if(!L.quiz||!L.quiz.length){return viewDashboard();}
+  // Bei jedem Aufruf neu: Fragenreihenfolge UND Antwortreihenfolge mischen,
+  // damit nicht immer „A“ richtig ist und die Fragen stets gleich stehen.
+  const QZ=shuffle(L.quiz.map(shuffleQuestion));
   const v=el("div",{class:"view"});
   v.appendChild(el("div",{class:"crumb"},"Lektion "+L.id+" · "+L.title));
   v.appendChild(el("h1",{class:"title"},"Quiz – Lektion "+L.id));
@@ -879,7 +891,7 @@ function viewQuiz(L){
       if(!foot.querySelector(".qdone")) foot.appendChild(el("span",{class:"qdone muted small"},msg));
     }
   }
-  L.quiz.forEach((q,qi)=>{
+  QZ.forEach((q,qi)=>{
     const qb=el("div",{class:"q-block"});
     qb.appendChild(el("div",{class:"q-num"},"FRAGE "+(qi+1)));
     qb.appendChild(el("div",{class:"q-text",html:q.q}));
